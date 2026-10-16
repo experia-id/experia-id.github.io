@@ -1,0 +1,2340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KONOHAPOLY - Board Game Kearifan Lokal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 65%, #e2e8f0 100%);
+            color: #1e293b;
+            overflow: hidden;
+            user-select: none;
+            height: 100vh;
+            width: 100vw;
+        }
+        .font-display {
+            font-family: 'Fredoka', sans-serif;
+            letter-spacing: 0.02em;
+        }
+
+        /* Non-Square Rectangular Board that fits Desktop without Scrolling */
+        .monopoly-board {
+            display: grid;
+            grid-template-columns: 1.25fr repeat(9, 1fr) 1.25fr;
+            grid-template-rows: 1.2fr repeat(9, 1fr) 1.2fr;
+            gap: 4px;
+            background-color: #cbd5e1;
+            border: 6px solid #ffffff;
+            border-radius: 26px;
+            width: 100%;
+            height: 100%;
+            box-shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.14), 0 0 0 2px #e2e8f0;
+            position: relative;
+            padding: 4px;
+        }
+
+        .board-center {
+            grid-column: 2 / 11;
+            grid-row: 2 / 11;
+            background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 75%, #f1f5f9 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border-radius: 18px;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .board-tile {
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 3px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s ease;
+            overflow: visible;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        }
+        .board-tile:hover {
+            z-index: 30;
+            transform: scale(1.12);
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18);
+            outline: 2px solid #fb923c;
+        }
+        .board-tile.corner-tile {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1px solid #fde68a;
+        }
+        .board-tile.lucky-draw-tile {
+            background: linear-gradient(135deg, #fffbeb 0%, #d4fec7 100%);
+            border: 1px solid #d4fec7;
+        }
+
+        /* Player Token & Active/Clicked Blinking Ring */
+        .player-token {
+            width: 22px;
+            height: 22px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            box-shadow: 0 3px 6px rgba(15, 23, 42, 0.3);
+            border: 2px solid #ffffff;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            z-index: 20;
+        }
+
+        @keyframes beacon-blink {
+            0%, 100% {
+                transform: scale(1.22);
+                box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.9), 0 4px 12px rgba(249, 115, 22, 0.65);
+            }
+            50% {
+                transform: scale(1.45);
+                box-shadow: 0 0 0 8px rgba(249, 115, 22, 0), 0 6px 18px rgba(234, 88, 12, 0.95);
+            }
+        }
+        @keyframes pointer-bounce {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, -5px); }
+        }
+
+        .token-blinking {
+            animation: beacon-blink 0.9s infinite ease-in-out;
+            z-index: 40 !important;
+            border-color: #fff7ed !important;
+        }
+        .token-pointer {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ea580c;
+            font-size: 11px;
+            filter: drop-shadow(0 1px 2px rgba(255,255,255,0.9));
+            animation: pointer-bounce 0.6s infinite ease-in-out;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                overflow-y: auto;
+                height: auto;
+                min-height: 100vh;
+            }
+            .monopoly-board {
+                aspect-ratio: 1 / 1.05;
+                height: auto;
+            }
+            .player-token {
+                width: 15px;
+                height: 15px;
+                font-size: 8px;
+                border-width: 1.5px;
+            }
+            .token-pointer {
+                top: -10px;
+                font-size: 8px;
+            }
+        }
+
+        @keyframes dice-shake {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-14deg) scale(1.1); }
+            75% { transform: rotate(14deg) scale(1.1); }
+        }
+        .animate-dice {
+            animation: dice-shake 0.24s infinite;
+        }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+            animation: float-slow 3.2s ease-in-out infinite;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    </style>
+</head>
+<body class="flex flex-col justify-between p-2 sm:p-3 gap-2 relative">
+
+    <!-- 1. INITIAL SPLASH SCREEN ("MULAI SEKARANG") -->
+    <div id="splashScreen" class="fixed inset-0 z-50 bg-gradient-to-br from-amber-50 via-white to-sky-50 flex items-center justify-center p-4">
+        <!-- Decorative Pastel Blobs -->
+        <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-rose-200/40 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-sky-200/50 blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-xl w-full bg-white/90 backdrop-blur-md border-4 border-white rounded-[36px] shadow-[0_25px_70px_-15px_rgba(15,23,42,0.15)] p-8 sm:p-10 text-center relative z-10">
+            <!-- Vector Mascot / Illustration -->
+            <div class="w-28 h-28 mx-auto mb-4 rounded-3xl bg-gradient-to-tr from-amber-100 to-rose-100 border-2 border-amber-200 flex items-center justify-center shadow-inner animate-float">
+                <svg class="w-20 h-20" viewBox="0 0 120 120" fill="none">
+                    <rect x="20" y="56" width="80" height="44" rx="10" fill="#FDE68A" stroke="#F59E0B" stroke-width="4"/>
+                    <path d="M14 58L60 22L106 58" fill="#FDA4AF" stroke="#F43F5E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="48" y="72" width="24" height="28" rx="4" fill="#FFFBEB" stroke="#F59E0B" stroke-width="3"/>
+                    <circle cx="88" cy="34" r="14" fill="#A7F3D0" stroke="#10B981" stroke-width="3"/>
+                    <text x="88" y="39" text-anchor="middle" fill="#065F46" font-size="13" font-weight="900">+62</text>
+                </svg>
+            </div>
+
+            <div class="mb-8">
+                <h1 class="font-display text-5xl sm:text-6xl font-bold tracking-tight text-slate-800 drop-shadow-sm">
+                    KONOHA<span class="text-rose-500">POLY</span>
+                </h1>
+
+                <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mt-2.5 leading-relaxed">
+                    Hadapi kerasnya kehidupan warga +62!
+                </p>
+            </div>
+
+            <!-- Character Pills Preview -->
+            <div class="hidden flex flex-wrap items-center justify-center gap-1.5 my-6">
+                <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200">🕺 Gemoy</span>
+                <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200">👷 Pria Solo</span>
+                <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200">🧑‍🌾 Warga</span>
+                <span class="px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold border border-sky-200">🤳 Buzzerp</span>
+                <span class="px-3 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-bold border border-orange-200">🐯 Pemuda Pancasila</span>
+                <span class="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold border border-purple-200">🕴️ Pengusaha</span>
+            </div>
+
+            <button onclick="openSetupFromSplash()" class="w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-display text-xl shadow-xl shadow-orange-500/25 transition transform hover:scale-105 active:scale-95">
+                MULAI <i class="fa-solid fa-play ml-2 text-base"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. PRE-MATCH WIZARD MODAL (CLEAN LIGHT PASTEL) -->
+    <div id="preMatchScreen" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+        <div class="max-w-2xl w-full bg-white border-4 border-slate-100 rounded-[32px] shadow-2xl overflow-hidden my-auto">
+            <!-- Wizard Top Progress -->
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-rose-500">Persiapan Permainan</span>
+                    <h2 id="wizardStepTitle" class="text-lg sm:text-xl font-display text-slate-800">Langkah 1: Jumlah Pemain & Ekonomi</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="wizDot1" class="w-8 h-2.5 rounded-full bg-rose-500 transition-all"></div>
+                    <div id="wizDot2" class="w-8 h-2.5 rounded-full bg-slate-200 transition-all"></div>
+                    <div id="wizDot3" class="w-8 h-2.5 rounded-full bg-slate-200 transition-all"></div>
+                </div>
+            </div>
+
+            <!-- Wizard Steps Body -->
+            <div class="p-6">
+                <!-- STEP 1: Jumlah Pemain, Mode Karakter & Ekonomi -->
+                <div id="wizardStep1" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">
+                            Jumlah Pemain
+                        </label>
+                        <div id="playerCountBtns" class="grid grid-cols-6 gap-2.5"></div>
+                        <p class="text-[11px] text-slate-400 mt-1.5">Pilih 1 pemain untuk langsung melawan 1 Bot otomatis.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="rounded-xl border p-6 bg-gray-100/50 border-gray-200">
+                            <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">
+                                Mode Karakter
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200 cursor-pointer hover:border-rose-400 transition">
+                                    <input type="radio" name="charMode" value="normal" checked onchange="updateSetupMode(this.value)" class="accent-rose-500">
+                                    <div>
+                                        <div class="text-xs font-bold text-slate-800">Normal (Pilih Sendiri)</div>
+                                        <div class="text-[10px] text-slate-500">Bebas pilih karakter favorit</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200 cursor-pointer hover:border-rose-400 transition">
+                                    <input type="radio" name="charMode" value="random" onchange="updateSetupMode(this.value)" class="accent-rose-500">
+                                    <div>
+                                        <div class="text-xs font-bold text-slate-800">Random Karakter</div>
+                                        <div class="text-[10px] text-slate-500">Acak (bisa kembar beda warna)</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200 cursor-pointer hover:border-rose-400 transition">
+                                    <input type="radio" name="charMode" value="unique" onchange="updateSetupMode(this.value)" class="accent-rose-500">
+                                    <div>
+                                        <div class="text-xs font-bold text-slate-800">All Unique</div>
+                                        <div class="text-[10px] text-slate-500">Semua pemain beda karakter</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border p-6 border-gray-200">
+                            <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">
+                                Kondisi Ekonomi
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 rounded-2xl bg-emerald-50/60 border border-emerald-200 cursor-pointer hover:border-emerald-400 transition">
+                                    <input type="radio" name="econMode" value="normal" checked onchange="setupState.economy = this.value" class="accent-emerald-600">
+                                    <div>
+                                        <div class="text-xs font-bold text-emerald-700">Normal (Rp100 Juta)</div>
+                                        <div class="text-[10px] text-slate-500">Stabilitas ekonomi standar</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 rounded-2xl bg-rose-50/60 border border-rose-200 cursor-pointer hover:border-rose-400 transition">
+                                    <input type="radio" name="econMode" value="krismon" onchange="setupState.economy = this.value" class="accent-rose-600">
+                                    <div>
+                                        <div class="text-xs font-bold text-rose-700">Krisis Moneter (Rp50 Juta)</div>
+                                        <div class="text-[10px] text-slate-500">Modal 50% & rawan kartu sial</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 rounded-2xl bg-amber-50/60 border border-amber-200 cursor-pointer hover:border-amber-400 transition">
+                                    <input type="radio" name="econMode" value="sultan" onchange="setupState.economy = this.value" class="accent-amber-600">
+                                    <div>
+                                        <div class="text-xs font-bold text-amber-700">Sultan (Rp200 Juta)</div>
+                                        <div class="text-[10px] text-slate-500">Modal 2x lipat sejak awal</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Daftar Pemain & Karakter -->
+                <div id="wizardStep2" class="hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-500">Atur nama, status Bot, & karakter tiap pemain:</span>
+                        <button onclick="randomizeSetupNames()" class="text-xs text-rose-600 hover:text-rose-500 font-bold flex items-center gap-1 bg-rose-50 px-3 py-1 rounded-xl border border-rose-200">
+                            <i class="fa-solid fa-shuffle"></i> Acak Nama
+                        </button>
+                    </div>
+                    <div id="playerSetupGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1"></div>
+                </div>
+
+                <!-- STEP 3: Ringkasan Siap Main -->
+                <div id="wizardStep3" class="hidden space-y-4 text-center py-2">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-100 border-2 border-amber-300 text-amber-600 flex items-center justify-center text-3xl mx-auto shadow-sm">
+                        🎲
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-display text-slate-800">Siap Berebut Lahan Konoha!</h3>
+                        <p class="hidden text-xs text-slate-500 mt-1">Kuasai seluruh kota dalam 1 warna yang sama untuk mengaktifkan <b class="text-emerald-600">Bonus Sewa Kombo +20%</b>!</p>
+                    </div>
+                    <div id="wizardSummaryBox" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+                </div>
+            </div>
+
+            <!-- Wizard Footer Navigation -->
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+                <button id="btnWizPrev" onclick="changeWizardStep(-1)" class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold transition invisible">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Kembali
+                </button>
+                <button id="btnWizNext" onclick="changeWizardStep(1)" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-display text-sm shadow-md transition">
+                    Lanjut <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. TOP HUD BAR (GAME-STYLE FLOATING CARDS + QUICK ICON POD, NO WEBSITE NAVBAR) -->
+    <section class="w-full max-w-[1440px] mx-auto flex items-center justify-between gap-2 shrink-0">
+        <!-- Player Cards Bar -->
+        <div id="playersCompactBar" class="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+            <!-- Injected via JS -->
+        </div>
+
+        <!-- Floating Game Utility Pill (Logs, Rules, Sound, Setup) -->
+        <div class="flex items-center gap-1.5 bg-white/90 backdrop-blur border-2 border-slate-200/80 px-2.5 py-1.5 rounded-2xl shadow-sm shrink-0">
+            <div class="hidden xl:flex flex-col items-end pr-2 border-r border-slate-200">
+                <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Putaran</span>
+                <span id="roundHeaderBadge" class="font-display text-xs text-rose-500">#1</span>
+            </div>
+
+            <button onclick="openLogsDrawer()" class="w-9 h-9 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 flex items-center justify-center relative transition" title="Kabar Konoha (Riwayat Log)">
+                <i class="fa-solid fa-newspaper"></i>
+                <span id="logUnreadDot" class="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white absolute -top-0.5 -right-0.5 hidden"></span>
+            </button>
+
+            <button onclick="openRulesModal()" class="w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 flex items-center justify-center transition" title="Info Karakter & Kombo Kota">
+                <i class="fa-solid fa-circle-info"></i>
+            </button>
+
+            <button onclick="toggleSound()" id="soundBtn" class="w-9 h-9 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-200 flex items-center justify-center transition" title="Suara Efek">
+                <i class="fa-solid fa-volume-high"></i>
+            </button>
+
+            <button onclick="showPreMatchWizard()" class="w-9 h-9 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 border border-rose-200 flex items-center justify-center transition" title="Atur Ulang Permainan">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </section>
+
+    <!-- 4. FULL-VIEWPORT RECTANGULAR BOARD (FITS DESKTOP SCREEN WITHOUT SCROLLING) -->
+    <main class="flex-1 w-full max-w-[1440px] mx-auto min-h-0 flex items-center justify-center">
+        <div id="monopolyBoard" class="monopoly-board">
+            <!-- 40 Clean Tiles + Center Pre-Roll Action Hub -->
+        </div>
+    </main>
+
+    <!-- CENTRAL POPUP MODAL (DICE ROLL, BUY/UPGRADE, VECTOR CARDS, TILE INFO) -->
+    <div id="centerPopupModal" class="fixed inset-0 z-50 bg-slate-900/35 backdrop-blur-[2px] hidden items-center justify-center p-4">
+        <div class="bg-white border-4 border-slate-100 rounded-[32px] max-w-md w-full p-6 shadow-[0_25px_70px_-15px_rgba(15,23,42,0.3)] text-center relative overflow-hidden">
+            <div id="popupTopBadge" class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 mb-2">
+                AKSI GILIRAN
+            </div>
+            <div id="popupIllustration" class="my-2 flex items-center justify-center"></div>
+            <h3 id="popupTitle" class="text-xl font-display text-slate-800 mb-1.5">Judul Popup</h3>
+            <div id="popupBody" class="text-xs sm:text-sm text-slate-600 space-y-2.5 mb-5"></div>
+            <div id="popupActions" class="flex flex-col sm:flex-row items-center justify-center gap-2.5"></div>
+        </div>
+    </div>
+
+    <!-- PRE-ROLL MANAGE & UPGRADE PROPERTY DRAWER -->
+    <div id="upgradeDrawerModal" class="fixed inset-0 z-50 bg-slate-900/35 backdrop-blur-[2px] hidden items-center justify-center p-4">
+        <div class="bg-white border-4 border-slate-100 rounded-[32px] max-w-lg w-full max-h-[82vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 bg-sky-50 border-b border-sky-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-sm">
+                        <i class="fa-solid fa-city"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display text-base text-slate-800 leading-none">Kelola & Upgrade Properti</h3>
+                        <span class="text-[11px] text-slate-500">Upgrade bangunanmu sebelum atau saat giliran berlangsung</span>
+                    </div>
+                </div>
+                <button onclick="closeUpgradeDrawer()" class="w-8 h-8 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-2.5" id="upgradeDrawerList"></div>
+            <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeUpgradeDrawer()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">
+                    Selesai & Kembali ke Papan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGS DRAWER MODAL -->
+    <div id="logsDrawerModal" class="fixed inset-0 z-50 bg-slate-900/35 backdrop-blur-[2px] hidden items-center justify-center p-4">
+        <div class="bg-white border-4 border-slate-100 rounded-[32px] max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-newspaper text-amber-600 text-lg"></i>
+                    <h3 class="font-display text-base text-slate-800">Kabar Konoha Terkini</h3>
+                </div>
+                <button onclick="closeLogsDrawer()" class="w-8 h-8 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="gameLogContainer" class="p-4 overflow-y-auto space-y-2 text-xs flex-1 bg-slate-50/50"></div>
+        </div>
+    </div>
+
+    <!-- CHARACTER & COMBO RULES INFO MODAL -->
+    <div id="rulesModal" class="fixed inset-0 z-50 bg-slate-900/35 backdrop-blur-[2px] hidden items-center justify-center p-4">
+        <div class="bg-white border-4 border-slate-100 rounded-[32px] max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="px-6 py-2 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
+                <h3 class="uppercase font-display text-base text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-emerald-600"></i>
+                    <span>Panduan Karakter & Aturan</span>
+                </h3>
+                <button onclick="closeRulesModal()" class="w-8 h-8 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4 text-xs text-slate-600">
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+                    <div class="bg-amber-50 p-2.5 rounded-2xl border border-amber-200">
+                        <div class="text-amber-700 font-bold">Gaji START</div>
+                        <div class="text-slate-800 font-extrabold mt-0.5">Rp5.000.000</div>
+                    </div>
+                    <div class="bg-rose-50 p-2.5 rounded-2xl border border-rose-200">
+                        <div class="text-rose-700 font-bold">Parkir Liar</div>
+                        <div class="text-slate-800 font-extrabold mt-0.5">Rp20.000 / Petak</div>
+                    </div>
+                    <div class="bg-sky-50 p-2.5 rounded-2xl border border-sky-200">
+                        <div class="text-sky-700 font-bold">Kuota Beli</div>
+                        <div class="text-slate-800 font-extrabold mt-0.5">2 Aset / Siklus</div>
+                    </div>
+                    <div class="bg-purple-50 p-2.5 rounded-2xl border border-purple-200">
+                        <div class="text-purple-700 font-bold">Kuota Upgrade</div>
+                        <div class="text-slate-800 font-extrabold mt-0.5">3x / Siklus</div>
+                    </div>
+                    <div class="bg-emerald-50 p-2.5 rounded-2xl border border-emerald-200 col-span-2 sm:col-span-1">
+                        <div class="text-emerald-700 font-bold">Kombo Warna</div>
+                        <div class="text-slate-800 font-extrabold mt-0.5">Sewa +20%</div>
+                    </div>
+                </div>
+                <div id="rulesCharGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**************************************************************
+         * 1. DATA 6 KARAKTER
+         **************************************************************/
+        const CHARACTERS = {
+            gemoy: {
+                id: 'gemoy',
+                name: 'Gemoy',
+                type: 'Pejabat',
+                typeIcon: 'fa-crown',
+                emoji: '🕺',
+                buffDesc: 'Dapat cipratan 40% setiap kali pemain manapun menerima hadiah uang dari Dana Umum / Kesempatan.',
+                debuffDesc: 'Wajib menalangi 50% denda ketika ada pemain lain yang terkena denda.',
+                diceDesc: 'Peluang 60% mendapat mata dadu angka besar (4, 5, 6).'
+            },
+            pria_solo: {
+                id: 'pria_solo',
+                name: 'Pria Solo',
+                type: 'Pejabat',
+                typeIcon: 'fa-crown',
+                emoji: '👷',
+                buffDesc: 'Bebas biaya tagihan saat mendarat di PLN maupun PDAM.',
+                debuffDesc: 'Jika berada tepat 1 petak sebelum bangunan milik Rakyat, lemparan berikutnya otomatis maju 1 petak ke bangunan tersebut.',
+                diceDesc: 'Setiap lemparan dadu ke-4 pasti mendapat angka kembar!'
+            },
+            warga: {
+                id: 'warga',
+                name: 'Warga',
+                type: 'Rakyat',
+                typeIcon: 'fa-users',
+                emoji: '🧑‍🌾',
+                buffDesc: 'Peluang tinggi (70%) dapat kartu positif & ekstra uang +50% di Dana Umum / Kesempatan.',
+                debuffDesc: 'Dipotong Pajak Penghasilan 10% tiap kali melewati garis START.',
+                diceDesc: 'Peluang 60% mendapat mata dadu angka kecil (1, 2, 3).'
+            },
+            buzzerp: {
+                id: 'buzzerp',
+                name: 'Buzzerp',
+                type: 'Rakyat',
+                typeIcon: 'fa-users',
+                emoji: '🤳',
+                buffDesc: 'Dapat komisi 10% dari gaji START setiap kali karakter Pejabat melewati garis START.',
+                debuffDesc: 'Bayar sewa lebih mahal +20% jika menginjak bangunan milik sesama Rakyat.',
+                diceDesc: 'Peluang mata dadu normal (1 - 6 seimbang).'
+            },
+            pemuda_pancasila: {
+                id: 'pemuda_pancasila',
+                name: 'Pemuda Pancasila',
+                type: 'Rakyat',
+                typeIcon: 'fa-users',
+                emoji: '🐯',
+                buffDesc: 'Dapat jatah pungutan 10% setiap ada pemain lain yang membeli tanah atau upgrade bangunan.',
+                debuffDesc: 'Peluang 60% bernasib sial (kartu buruk) saat mengambil Dana Umum / Kesempatan.',
+                diceDesc: 'Setiap lemparan dadu ke-4 selalu mendapat angka kecil (1, 2, 3).'
+            },
+            pengusaha: {
+                id: 'pengusaha',
+                name: 'Pengusaha',
+                type: 'Rakyat',
+                typeIcon: 'fa-users',
+                emoji: '🕴️',
+                buffDesc: 'Dapat bonus dividen +10% setiap melewati garis START.',
+                debuffDesc: 'Denda/tagihan bertambah +20% ketika membayar tagihan listrik (PLN) & air (PDAM).',
+                diceDesc: 'Setiap lemparan dadu ke-4 selalu mendapat angka besar (4, 5, 6).'
+            }
+        };
+
+        const PLAYER_COLORS = [
+            { name: 'Coral', hex: '#f43f5e', pastelBg: '#ffe4e6', border: '#fda4af' },
+            { name: 'Sky', hex: '#0ea5e9', pastelBg: '#e0f2fe', border: '#7dd3fc' },
+            { name: 'Mint', hex: '#10b981', pastelBg: '#d1fae5', border: '#6ee7b7' },
+            { name: 'Amber', hex: '#f59e0b', pastelBg: '#fef3c7', border: '#fcd34d' },
+            { name: 'Lavender', hex: '#8b5cf6', pastelBg: '#ede9fe', border: '#c4b5fd' },
+            { name: 'Peach', hex: '#ec4899', pastelBg: '#fce7f3', border: '#f9a8d4' }
+        ];
+
+        const DEFAULT_NAMES = [
+            'Bambang', 'Yono', 'Siti', 'Agus', 'Raden', 'Tono', 'Lurah', 'Sultan'
+        ];
+
+        /**************************************************************
+         * 2. KELOMPOK KOMBO KOTA (+20% SEWA JIKA LENGKAP 1 WARNA)
+         **************************************************************/
+        const COMBO_GROUPS = {
+            A: { code: 'A', name: 'Kombo A • Penyangga', color: '#f97316', pastel: '#ffedd5', tiles: [2, 4] },
+            B: { code: 'B', name: 'Kombo B • Jawa Barat', color: '#38bdf8', pastel: '#e0f2fe', tiles: [6, 8, 9] },
+            C: { code: 'C', name: 'Kombo C • Jawa Tengah', color: '#ec4899', pastel: '#fce7f3', tiles: [11, 13, 14] },
+            D: { code: 'D', name: 'Kombo D • Jawa Timur', color: '#eab308', pastel: '#fef9c3', tiles: [16, 18] },
+            E: { code: 'E', name: 'Kombo E • Wisata Tropis', color: '#f43f5e', pastel: '#ffe4e6', tiles: [21, 23, 24] },
+            F: { code: 'F', name: 'Kombo F • Sumatera', color: '#a855f7', pastel: '#f3e8ff', tiles: [26, 29] },
+            G: { code: 'G', name: 'Kombo G • Timur Nusantara', color: '#10b981', pastel: '#d1fae5', tiles: [31, 32, 34] },
+            H: { code: 'H', name: 'Kombo H • Ibu Kota', color: '#6366f1', pastel: '#e0e7ff', tiles: [37, 39] }
+        };
+
+        const BOARD_TILES = [
+            // BARIS BAWAH (0 - 10)
+            { id: 0, name: 'GARIS START', short: 'START', type: 'start', icon: '🏁', desc: 'Gaji Rp5.000.000 setiap melewati garis ini.' },
+            { id: 1, name: 'Pajak PPH', short: 'PPH', type: 'tax', taxAmount: 500000, icon: '🧾', desc: 'Wajib bayar PPH Rp500.000.' },
+            { id: 2, name: 'Depok - Margonda', short: 'Depok', group: 'A', landmark: 'Lampu Merah Margonda', type: 'property', color: '#f97316', pastel: '#ffedd5', price: 6000000, baseRent: 350000, icon: '🛵' },
+            { id: 3, name: 'DANA UMUM', short: 'DANA UMUM', type: 'chest', icon: '📦', desc: 'Ambil kartu Dana Umum APBN Konoha.' },
+            { id: 4, name: 'Bekasi - Summarecon', short: 'Bekasi', group: 'A', landmark: 'Flyover Planet Bekasi', type: 'property', color: '#f97316', pastel: '#ffedd5', price: 7000000, baseRent: 400000, icon: '🪐' },
+            { id: 5, name: 'Stasiun KRL Manggarai', short: 'KRL', landmark: 'Transit Sejuta Umat', type: 'transport', color: '#0284c7', pastel: '#e0f2fe', price: 12000000, baseRent: 900000, icon: '🚆' },
+            { id: 6, name: 'Bogor - Kebun Raya', short: 'Bogor', group: 'B', landmark: 'Istana & Tugu Kujang', type: 'property', color: '#38bdf8', pastel: '#e0f2fe', price: 8500000, baseRent: 500000, icon: '🦌' },
+            { id: 7, name: 'KESEMPATAN', short: 'KESEMPATAN', type: 'chance', icon: '❓', desc: 'Kartu untung-untungan warga Konoha.' },
+            { id: 8, name: 'Tangerang - BSD', short: 'Tangerang', group: 'B', landmark: 'Kawasan BSD City', type: 'property', color: '#38bdf8', pastel: '#e0f2fe', price: 9500000, baseRent: 550000, icon: '🏙️' },
+            { id: 9, name: 'Bandung - Gedung Sate', short: 'Bandung', group: 'B', landmark: 'Gedung Sate & Braga', type: 'property', color: '#38bdf8', pastel: '#e0f2fe', price: 11000000, baseRent: 650000, icon: '🍢' },
+            { id: 10, name: 'Rutan KPK', short: 'Rutan KPK', type: 'jail', icon: '⛓️', desc: 'Penjara KPK (Bebas parkir Rp20.000).' },
+
+            // BARIS KIRI (11 - 20)
+            { id: 11, name: 'Solo - Balai Kota', short: 'Solo', group: 'C', landmark: 'Keraton & Manahan', type: 'property', color: '#ec4899', pastel: '#fce7f3', price: 12500000, baseRent: 750000, icon: '👑' },
+            { id: 12, name: 'PLN Pusat', short: 'PLN', landmark: 'BUMN Kelistrikan', type: 'utility', color: '#eab308', pastel: '#fef9c3', price: 12000000, baseRent: 850000, icon: '⚡' },
+            { id: 13, name: 'Semarang - Lawang Sewu', short: 'Semarang', group: 'C', landmark: 'Lawang Sewu', type: 'property', color: '#ec4899', pastel: '#fce7f3', price: 13500000, baseRent: 800000, icon: '🏛️' },
+            { id: 14, name: 'Jogja - Borobudur', short: 'Jogja', group: 'C', landmark: 'Candi Borobudur & Tugu', type: 'property', color: '#ec4899', pastel: '#fce7f3', price: 15000000, baseRent: 900000, icon: '🛕' },
+            { id: 15, name: 'DANA UMUM', short: 'DANA UMUM', type: 'chest', icon: '📦', desc: 'Ambil kartu Dana Umum APBN Konoha.' },
+            { id: 16, name: 'Stasiun MRT HI', short: 'MRT', landmark: 'Bundaran HI', type: 'transport', color: '#0284c7', pastel: '#e0f2fe', price: 12000000, baseRent: 900000, icon: '🚇' },
+            { id: 17, name: 'Malang - Alun Tugu', short: 'Malang', group: 'D', landmark: 'Balai Kota & Bromo', type: 'property', color: '#eab308', pastel: '#fef9c3', price: 16000000, baseRent: 950000, icon: '🍏' },
+            { id: 18, name: 'KESEMPATAN', short: 'KESEMPATAN', type: 'chance', icon: '❓', desc: 'Kartu untung-untungan warga Konoha.' },
+            { id: 19, name: 'Surabaya - Tugu Pahlawan', short: 'Surabaya', group: 'D', landmark: 'Patung Sura & Baya', type: 'property', color: '#eab308', pastel: '#fef9c3', price: 17500000, baseRent: 1050000, icon: '🦈' },
+            { id: 20, name: 'Pos Warung Kopi', short: 'Pos Kopi', type: 'freeparking', icon: '☕', desc: 'Tempat nongkrong warga (Parkir Rp20.000).' },
+
+            // BARIS ATAS (21 - 30)
+            { id: 21, name: 'Bali - GWK Denpasar', short: 'Bali', group: 'E', landmark: 'Garuda Wisnu Kencana', type: 'property', color: '#f43f5e', pastel: '#ffe4e6', price: 19000000, baseRent: 1150000, icon: '🏝️' },
+            { id: 22, name: 'KESEMPATAN', short: 'KESEMPATAN', type: 'chance', icon: '❓', desc: 'Kartu untung-untungan warga Konoha.' },
+            { id: 23, name: 'Lombok - Mandalika', short: 'Lombok', group: 'E', landmark: 'Sirkuit Mandalika', type: 'property', color: '#f43f5e', pastel: '#ffe4e6', price: 20000000, baseRent: 1200000, icon: '🏍️' },
+            { id: 24, name: 'Labuan Bajo - Komodo', short: 'Bajo', group: 'E', landmark: 'Pulau Komodo', type: 'property', color: '#f43f5e', pastel: '#ffe4e6', price: 21500000, baseRent: 1300000, icon: '🦎' },
+            { id: 25, name: 'Bandara Soetta', short: 'Bandara', landmark: 'Terminal 3 Ultimate', type: 'transport', color: '#0284c7', pastel: '#e0f2fe', price: 12000000, baseRent: 900000, icon: '✈️' },
+            { id: 26, name: 'Medan - Istana Maimun', short: 'Medan', group: 'F', landmark: 'Istana Maimun', type: 'property', color: '#a855f7', pastel: '#f3e8ff', price: 23000000, baseRent: 1400000, icon: '🏰' },
+            { id: 27, name: 'DANA UMUM', short: 'DANA UMUM', type: 'chest', icon: '📦', desc: 'Ambil kartu Dana Umum APBN Konoha.' },
+            { id: 28, name: 'PDAM Tirta', short: 'PDAM', landmark: 'Perusahaan Air Minum', type: 'utility', color: '#06b6d4', pastel: '#cffafe', price: 12000000, baseRent: 850000, icon: '🚰' },
+            { id: 29, name: 'Palembang - Ampera', short: 'Palembang', group: 'F', landmark: 'Jembatan Ampera', type: 'property', color: '#a855f7', pastel: '#f3e8ff', price: 24500000, baseRent: 1500000, icon: '🌉' },
+            { id: 30, name: 'OTT KPK!', short: 'OTT KPK!', type: 'gotojail', icon: '🚨', desc: 'Tertangkap tangan! Langsung masuk Rutan KPK.' },
+
+            // BARIS KANAN (31 - 39)
+            { id: 31, name: 'Makassar - Losari', short: 'Makassar', group: 'G', landmark: 'Pantai Losari', type: 'property', color: '#10b981', pastel: '#d1fae5', price: 26000000, baseRent: 1600000, icon: '⛵' },
+            { id: 32, name: 'Balikpapan - Kilang', short: 'Balikpapan', group: 'G', landmark: 'Kilang Minyak', type: 'property', color: '#10b981', pastel: '#d1fae5', price: 27500000, baseRent: 1700000, icon: '🛢️' },
+            { id: 33, name: 'DANA UMUM', short: 'DANA UMUM', type: 'chest', icon: '📦', desc: 'Ambil kartu Dana Umum APBN Konoha.' },
+            { id: 34, name: 'Jayapura - Youtefa', short: 'Jayapura', group: 'G', landmark: 'Jembatan Youtefa', type: 'property', color: '#10b981', pastel: '#d1fae5', price: 29000000, baseRent: 1800000, icon: '🌅' },
+            { id: 35, name: 'Pelabuhan Merak', short: 'Pelabuhan', landmark: 'Kapal Ferry Lintas Pulau', type: 'transport', color: '#0284c7', pastel: '#e0f2fe', price: 12000000, baseRent: 900000, icon: '⛴️' },
+            { id: 36, name: 'KESEMPATAN', short: 'KESEMPATAN', type: 'chance', icon: '❓', desc: 'Kartu untung-untungan warga Konoha.' },
+            { id: 37, name: 'IKN - Istana Garuda', short: 'IKN', group: 'H', landmark: 'Istana Garuda', type: 'property', color: '#6366f1', pastel: '#e0e7ff', price: 32000000, baseRent: 2000000, icon: '🦅' },
+            { id: 38, name: 'Pajak Bea Cukai', short: 'Bea Cukai', type: 'tax', taxAmount: 1500000, icon: '🛃', desc: 'Pajak barang mewah Rp1.500.000.' },
+            { id: 39, name: 'Jakarta - Monas', short: 'Jakarta', group: 'H', landmark: 'Tugu Monas Emas', type: 'property', color: '#6366f1', pastel: '#e0e7ff', price: 35000000, baseRent: 2200000, icon: '🗼' }
+        ];
+
+        const UPGRADE_LABELS = [
+            'Tanah Kavling',
+            'Lv.1 Ruko',
+            'Lv.2 Cluster',
+            'Lv.3 Apartemen',
+            'Lv.4 Landmark'
+        ];
+
+        // Cek apakah pemilik menguasai seluruh kota dalam 1 grup kombo
+        function hasFullComboGroup(ownerId, groupCode) {
+            if (ownerId === null || ownerId === undefined || !groupCode) return false;
+            const grp = COMBO_GROUPS[groupCode];
+            if (!grp) return false;
+            return grp.tiles.every(tid => {
+                const o = gameState.ownership[tid];
+                return o && o.ownerId === ownerId;
+            });
+        }
+
+        /**************************************************************
+         * 3. KARTU DANA UMUM & KESEMPATAN + VECTOR SVG ILLUSTRATIONS
+         **************************************************************/
+        function getCardVectorSVG(theme) {
+            const svgs = {
+                bansos: `<svg class="w-24 h-24 mx-auto" viewBox="0 0 120 120" fill="none">
+                    <circle cx="60" cy="60" r="50" fill="#D1FAE5" stroke="#10B981" stroke-width="3"/>
+                    <rect x="32" y="42" width="56" height="44" rx="8" fill="#FDE68A" stroke="#F59E0B" stroke-width="3"/>
+                    <path d="M32 56H88" stroke="#D97706" stroke-width="3"/>
+                    <circle cx="60" cy="70" r="10" fill="#10B981"/>
+                    <path d="M56 70L59 73L65 67" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>`,
+                proyek: `<svg class="w-24 h-24 mx-auto" viewBox="0 0 120 120" fill="none">
+                    <circle cx="60" cy="60" r="50" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="3"/>
+                    <rect x="28" y="44" width="64" height="42" rx="8" fill="#BAE6FD" stroke="#0284C7" stroke-width="3"/>
+                    <path d="M46 44V36C46 33.7909 47.7909 32 50 32H70C72.2091 32 74 33.7909 74 36V44" stroke="#0284C7" stroke-width="3"/>
+                    <circle cx="60" cy="65" r="12" fill="#FBBF24"/>
+                    <text x="60" y="69" text-anchor="middle" fill="#78350F" font-size="11" font-weight="900">Rp</text>
+                </svg>`,
+                patwal: `<svg class="w-24 h-24 mx-auto" viewBox="0 0 120 120" fill="none">
+                    <circle cx="60" cy="60" r="50" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="3"/>
+                    <rect x="26" y="58" width="68" height="24" rx="8" fill="#38BDF8" stroke="#0284C7" stroke-width="2.5"/>
+                    <path d="M38 58L46 42H74L82 58" fill="#BAE6FD"/>
+                    <rect x="54" y="34" width="12" height="8" rx="3" fill="#F43F5E"/>
+                    <circle cx="42" cy="82" r="9" fill="#334155" stroke="white" stroke-width="3"/>
+                    <circle cx="78" cy="82" r="9" fill="#334155" stroke="white" stroke-width="3"/>
+                </svg>`,
+                mbg: `<svg class="w-24 h-24 mx-auto" viewBox="0 0 120 120" fill="none">
+                    <circle cx="60" cy="60" r="50" fill="#FFE4E6" stroke="#F43F5E" stroke-width="3"/>
+                    <rect x="30" y="48" width="60" height="38" rx="8" fill="#FECDD3" stroke="#E11D48" stroke-width="3"/>
+                    <path d="M44 38C44 32 50 32 50 26" stroke="#65A30D" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M60 36C60 30 66 30 66 24" stroke="#65A30D" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M48 63L56 71M56 63L48 71M64 63L72 71M72 63L64 71" stroke="#881337" stroke-width="3" stroke-linecap="round"/>
+                </svg>`,
+                asap: `<svg class="w-24 h-24 mx-auto" viewBox="0 0 120 120" fill="none">
+                    <circle cx="60" cy="60" r="50" fill="#FFEDD5" stroke="#F97316" stroke-width="3"/>
+                    <path d="M36 74H84C91 74 96 69 96 62C96 56 91 51 85 50C83 39 73 32 62 32C50 32 41 40 39 51C32 52 28 57 28 63C28 69 32 74 36 74Z" fill="#CBD5E1" stroke="#64748B" stroke-width="2.5"/>
+                    <path d="M42 86H78M48 94H72" stroke="#F97316" stroke-width="3" stroke-linecap="round"/>
+                </svg>`,
+                rapat: `<svg class="w-24 h-24 mx-auto" viewBox="0 0 120 120" fill="none">
+                    <circle cx="60" cy="60" r="50" fill="#FCE7F3" stroke="#EC4899" stroke-width="3"/>
+                    <rect x="34" y="34" width="52" height="54" rx="6" fill="#FDF2F8" stroke="#DB2777" stroke-width="3"/>
+                    <path d="M44 50H76M44 62H76M44 74H62" stroke="#F472B6" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="78" cy="76" r="14" fill="#E11D48"/>
+                    <path d="M73 71L83 81M83 71L73 81" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                </svg>`
+            };
+            return svgs[theme] || svgs.proyek;
+        }
+
+        const CARDS_DECK = [
+            {
+                kind: 'good',
+                svg: 'bansos',
+                title: 'Cair Bansos & BLT Jelang Pilkada!',
+                desc: 'Namamu masuk daftar penerima BLT dadakan plus beras 10kg.',
+                money: 4000000
+            },
+            {
+                kind: 'good',
+                svg: 'proyek',
+                title: 'Menang Tender Pengadaan Gorden!',
+                desc: 'Perusahaan temanmu lolos tender gorden gedung dewan. Kamu kebagian komisi konsultan!',
+                money: 6000000
+            },
+            {
+                kind: 'good',
+                svg: 'proyek',
+                title: 'Ganti Untung Lahan Proyek Tol!',
+                desc: 'Tanah warisan di pinggir desa terkena jalur Proyek Strategis Nasional.',
+                money: 7500000
+            },
+            {
+                kind: 'good',
+                svg: 'bansos',
+                title: 'Viral di Sosmed: No Viral No Justice!',
+                desc: 'Video keluhan jalan rusak ditonton 10 juta kali, langsung diundang podcast & dapat saweran!',
+                money: 3500000
+            },
+            {
+                kind: 'good',
+                svg: 'patwal',
+                title: 'Nebeng Kawalan Patwal "Tot Tot Wuk Wuk"',
+                desc: 'Bebas macet mengikuti rombongan VIP! Langsung melesat maju 3 petak.',
+                money: 0,
+                moveDelta: 3
+            },
+            {
+                kind: 'bad',
+                svg: 'mbg',
+                title: 'Keracunan Menu MBG!',
+                desc: 'Lauk katering basi bikin sakit perut satu kantor. Bayar biaya opname IGD.',
+                money: -2500000,
+                isFine: true
+            },
+            {
+                kind: 'bad',
+                svg: 'rapat',
+                title: 'Server PDN Down Berhari-hari!',
+                desc: 'Pusat Data kena kunci hacker dan lupa di-backup! Urusan izin usaha macet, bayar biaya darurat.',
+                money: -3000000,
+                isFine: true
+            },
+            {
+                kind: 'bad',
+                svg: 'rapat',
+                title: 'Anggaran Habis Buat Rapat di Hotel!',
+                desc: 'Kas daerah ludes dipakai studi banding. Kamu TIDAK GAJIAN saat melewati garis START berikutnya!',
+                money: 0,
+                noSalaryNextStart: true
+            },
+            {
+                kind: 'bad',
+                svg: 'asap',
+                title: 'Terjebak Kabut Asap Karhutla!',
+                desc: 'Jarak pandang cuma 5 meter, terpaksa putar balik dan mundur 2 petak.',
+                money: 0,
+                moveDelta: -2
+            },
+            {
+                kind: 'bad',
+                svg: 'mbg',
+                title: 'Potongan Tapera & PPN 12% Serentak!',
+                desc: 'Tagihan bulanan membengkak drastis, setor denda administrasi.',
+                money: -2000000,
+                isFine: true
+            }
+        ];
+
+        /**************************************************************
+         * 4. AUDIO & STATE MANAGEMENT
+         **************************************************************/
+        let soundEnabled = true;
+        let synth = null;
+
+        function playTone(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!synth) {
+                    synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                    synth.volume.value = -8;
+                }
+                const now = Tone.now();
+                if (type === 'dice') synth.triggerAttackRelease(['C5', 'E5'], '16n', now);
+                else if (type === 'step') synth.triggerAttackRelease(['G4'], '32n', now);
+                else if (type === 'cash') synth.triggerAttackRelease(['C5', 'E5', 'G5', 'C6'], '16n', now);
+                else if (type === 'bad') synth.triggerAttackRelease(['F3', 'B2'], '8n', now);
+                else if (type === 'upgrade') synth.triggerAttackRelease(['D5', 'F#5', 'A5', 'D6'], '8n', now);
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundBtn').innerHTML = soundEnabled
+                ? '<i class="fa-solid fa-volume-high"></i>'
+                : '<i class="fa-solid fa-volume-xmark text-slate-400"></i>';
+        }
+
+        const setupState = {
+            wizardStep: 1,
+            playerCount: 4,
+            mode: 'normal',
+            economy: 'normal',
+            slots: []
+        };
+
+        let gameState = {
+            started: false,
+            economy: 'normal',
+            turnNumber: 1,
+            currentPlayerIdx: 0,
+            highlightedPlayerId: 0,
+            players: [],
+            ownership: {}, // tileId -> { ownerId, level (0..4), boughtAtCycle }
+            extraRollGrantedThisTurn: false,
+            canRollAgain: false,
+            isProcessing: false
+        };
+
+        function formatRp(num) {
+            const sign = num < 0 ? '-' : '';
+            const abs = Math.abs(Math.round(num));
+            return sign + 'Rp' + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        function formatShortRp(num) {
+            const abs = Math.abs(num);
+            if (abs >= 1000000) {
+                const jt = (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1);
+                return `Rp${jt}Jt`;
+            }
+            if (abs >= 1000) return `Rp${Math.round(num / 1000)}Rb`;
+            return `Rp${num}`;
+        }
+
+        function getGridPosition(index) {
+            if (index >= 0 && index <= 10) return { row: 11, col: 11 - index };
+            if (index >= 11 && index <= 20) return { row: 11 - (index - 10), col: 1 };
+            if (index >= 21 && index <= 30) return { row: 1, col: 1 + (index - 20) };
+            return { row: 1 + (index - 30), col: 11 };
+        }
+
+        /**************************************************************
+         * 5. SPLASH SCREEN & PRE-MATCH WIZARD LOGIC
+         **************************************************************/
+        function openSetupFromSplash() {
+            playTone('cash');
+            document.getElementById('splashScreen').classList.add('hidden');
+            showPreMatchWizard();
+        }
+
+        function initSetupWizard() {
+            const charKeys = Object.keys(CHARACTERS);
+            setupState.slots = [];
+            for (let i = 0; i < 6; i++) {
+                setupState.slots.push({
+                    name: DEFAULT_NAMES[i] || `Warga #${i + 1}`,
+                    isBot: i >= 1,
+                    charId: charKeys[i % charKeys.length]
+                });
+            }
+            setupState.wizardStep = 1;
+            renderPlayerCountButtons();
+            renderPlayerSetupSlots();
+            renderRulesCharacters();
+            updateWizardUI();
+        }
+
+        function showPreMatchWizard() {
+            setupState.wizardStep = 1;
+            updateWizardUI();
+            const el = document.getElementById('preMatchScreen');
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+        }
+
+        function changeWizardStep(delta) {
+            const next = setupState.wizardStep + delta;
+            if (next < 1) return;
+            if (next > 3) {
+                startGame();
+                return;
+            }
+            setupState.wizardStep = next;
+            if (next === 2) renderPlayerSetupSlots();
+            if (next === 3) renderWizardSummary();
+            updateWizardUI();
+        }
+
+        function updateWizardUI() {
+            const s = setupState.wizardStep;
+            document.getElementById('wizardStep1').classList.toggle('hidden', s !== 1);
+            document.getElementById('wizardStep2').classList.toggle('hidden', s !== 2);
+            document.getElementById('wizardStep3').classList.toggle('hidden', s !== 3);
+
+            const titles = [
+                'Langkah 1: Jumlah Pemain & Ekonomi',
+                'Langkah 2: Kustomisasi Pemain & Karakter',
+                'Langkah 3: Konfirmasi Pertandingan'
+            ];
+            document.getElementById('wizardStepTitle').textContent = titles[s - 1];
+
+            document.getElementById('wizDot1').className = `w-8 h-2.5 rounded-full transition-all ${s >= 1 ? 'bg-rose-500' : 'bg-slate-200'}`;
+            document.getElementById('wizDot2').className = `w-8 h-2.5 rounded-full transition-all ${s >= 2 ? 'bg-rose-500' : 'bg-slate-200'}`;
+            document.getElementById('wizDot3').className = `w-8 h-2.5 rounded-full transition-all ${s >= 3 ? 'bg-rose-500' : 'bg-slate-200'}`;
+
+            const prevBtn = document.getElementById('btnWizPrev');
+            prevBtn.classList.toggle('invisible', s === 1);
+
+            const nextBtn = document.getElementById('btnWizNext');
+            if (s === 3) {
+                nextBtn.innerHTML = `<i class="fa-solid fa-play mr-1"></i> MULAI PERMAINAN`;
+            } else {
+                nextBtn.innerHTML = `Lanjut <i class="fa-solid fa-arrow-right ml-1"></i>`;
+            }
+        }
+
+        function renderPlayerCountButtons() {
+            const container = document.getElementById('playerCountBtns');
+            container.innerHTML = '';
+            for (let c = 1; c <= 6; c++) {
+                const active = setupState.playerCount === c;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `py-2.5 rounded-2xl font-display text-base border-2 transition ${
+                    active
+                        ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/20'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-rose-300'
+                }`;
+                btn.textContent = c;
+                btn.onclick = () => {
+                    setupState.playerCount = c;
+                    if (setupState.mode === 'unique') enforceUniqueCharacters();
+                    renderPlayerCountButtons();
+                };
+                container.appendChild(btn);
+            }
+        }
+
+        function updateSetupMode(mode) {
+            setupState.mode = mode;
+            const charKeys = Object.keys(CHARACTERS);
+            if (mode === 'random') {
+                setupState.slots.forEach(s => s.charId = charKeys[Math.floor(Math.random() * charKeys.length)]);
+            } else if (mode === 'unique') {
+                enforceUniqueCharacters();
+            }
+        }
+
+        function enforceUniqueCharacters() {
+            const charKeys = [...Object.keys(CHARACTERS)];
+            for (let i = charKeys.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [charKeys[i], charKeys[j]] = [charKeys[j], charKeys[i]];
+            }
+            for (let i = 0; i < 6; i++) setupState.slots[i].charId = charKeys[i];
+        }
+
+        function randomizeSetupNames() {
+            const pool = [...DEFAULT_NAMES, 'Pak RT', 'Mandor', 'Juragan', 'Stafsus'];
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+            setupState.slots.forEach((slot, idx) => slot.name = pool[idx]);
+            renderPlayerSetupSlots();
+        }
+
+        function renderPlayerSetupSlots() {
+            const grid = document.getElementById('playerSetupGrid');
+            grid.innerHTML = '';
+            const effectiveCount = setupState.playerCount === 1 ? 2 : setupState.playerCount;
+
+            for (let i = 0; i < effectiveCount; i++) {
+                const slot = setupState.slots[i];
+                if (setupState.playerCount === 1 && i === 1) slot.isBot = true;
+                const color = PLAYER_COLORS[i];
+                const disableSelect = setupState.mode !== 'normal';
+
+                let optionsHtml = '';
+                Object.values(CHARACTERS).forEach(ch => {
+                    optionsHtml += `<option value="${ch.id}" ${ch.id === slot.charId ? 'selected' : ''}>${ch.emoji} ${ch.name}</option>`;
+                });
+
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 space-y-2';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded-full inline-block border-2 border-white shadow-sm" style="background:${color.hex}"></span>
+                            <span class="text-xs font-extrabold text-slate-700">Pemain #${i + 1}</span>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-[11px] cursor-pointer px-2.5 py-0.5 rounded-xl bg-white border border-slate-200">
+                            <input type="checkbox" ${slot.isBot ? 'checked' : ''} onchange="setupState.slots[${i}].isBot = this.checked; renderPlayerSetupSlots()" class="accent-rose-500">
+                            <span class="font-bold ${slot.isBot ? 'text-rose-600' : 'text-slate-400'}">🤖 BOT</span>
+                        </label>
+                    </div>
+                    <input type="text" value="${slot.name}" oninput="setupState.slots[${i}].name = this.value"
+                        class="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 font-bold focus:outline-none focus:border-rose-400">
+                    <select ${disableSelect ? 'disabled' : ''} onchange="setupState.slots[${i}].charId = this.value"
+                        class="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 font-bold disabled:opacity-50">
+                        ${optionsHtml}
+                    </select>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function renderWizardSummary() {
+            const box = document.getElementById('wizardSummaryBox');
+            const effectiveCount = setupState.playerCount === 1 ? 2 : setupState.playerCount;
+            let html = '';
+            for (let i = 0; i < effectiveCount; i++) {
+                const s = setupState.slots[i];
+                const ch = CHARACTERS[s.charId];
+                const col = PLAYER_COLORS[i];
+                html += `
+                    <div class="flex items-center gap-2.5 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg border-2 border-white shadow-sm shrink-0" style="background:${col.hex}">
+                            ${ch.emoji}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-extrabold text-slate-800 truncate">${ch.name} <span class="text-[10px] text-slate-400 font-normal">(${s.name})</span></div>
+                            <div class="text-[10px] text-rose-600 font-semibold flex items-center gap-1">
+                                <i class="fa-solid ${ch.typeIcon}"></i> ${ch.type} ${s.isBot ? '• 🤖 BOT' : '• 👤 Player'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            box.innerHTML = html;
+        }
+
+        function renderRulesCharacters() {
+            document.getElementById('rulesCharGrid').innerHTML = Object.values(CHARACTERS).map(c => `
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-1">
+                    <div class="bg-amber-200 rounded-xl p-2 mb-2 flex items-center justify-between">
+                        <span class="font-display text-sm text-slate-800">${c.emoji} ${c.name}</span>
+                        <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
+                            <i class="fa-solid ${c.typeIcon}"></i> ${c.type}
+                        </span>
+                    </div>
+                    <ul class="space-y-2">
+                        <li class="flex"><span class="w-16 text-emerald-700"><b>BUFF:</b></span><span class="flex-1">${c.buffDesc}</span></li>
+                        <li class="flex"><span class="w-16 text-rose-600"><b>DEBUFF:</b></span><span class="flex-1">${c.debuffDesc}</span></li>
+                        <li class="flex"><span class="w-16 text-sky-700"><b>DICE:</b></span><span class="flex-1">${c.diceDesc}</span></li>
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        /**************************************************************
+         * 6. START GAME & CLEAN BOARD RENDERING (WITH COMBO BADGES & PRE-ROLL MANAGE PROPERTY)
+         **************************************************************/
+        function startGame() {
+            if (setupState.mode === 'random') {
+                const keys = Object.keys(CHARACTERS);
+                setupState.slots.forEach(s => s.charId = keys[Math.floor(Math.random() * keys.length)]);
+            } else if (setupState.mode === 'unique') {
+                enforceUniqueCharacters();
+            }
+
+            let startingCash = 100000000;
+            if (setupState.economy === 'krismon') startingCash = 50000000;
+            if (setupState.economy === 'sultan') startingCash = 200000000;
+
+            const count = setupState.playerCount === 1 ? 2 : setupState.playerCount;
+            const players = [];
+            for (let i = 0; i < count; i++) {
+                const s = setupState.slots[i];
+                const charObj = CHARACTERS[s.charId];
+                players.push({
+                    id: i,
+                    name: s.name.trim() || `Warga #${i + 1}`,
+                    isBot: s.isBot,
+                    charId: s.charId,
+                    charName: charObj.name,
+                    charType: charObj.type,
+                    typeIcon: charObj.typeIcon,
+                    emoji: charObj.emoji,
+                    color: PLAYER_COLORS[i],
+                    money: startingCash,
+                    position: 0,
+                    cycleCount: 0,
+                    boughtThisCycle: 0,
+                    upgradesThisCycle: 0,
+                    upgradedThisTurn: false,
+                    rollCount: 0,
+                    inJail: false,
+                    jailTurns: 0,
+                    skipNextSalary: false,
+                    bankrupt: false
+                });
+            }
+
+            gameState = {
+                started: true,
+                economy: setupState.economy,
+                turnNumber: 1,
+                currentPlayerIdx: 0,
+                highlightedPlayerId: 0,
+                players: players,
+                ownership: {},
+                extraRollGrantedThisTurn: false,
+                canRollAgain: false,
+                isProcessing: false
+            };
+
+            const pm = document.getElementById('preMatchScreen');
+            pm.classList.add('hidden');
+            pm.classList.remove('flex');
+            document.getElementById('gameLogContainer').innerHTML = '';
+
+            renderBoard();
+            updateAllUI();
+            addLog(`🎉 Permainan dimulai! Modal awal: <b>${formatRp(startingCash)}</b>.`, 'system');
+            checkIfBotTurn();
+        }
+
+        function focusPlayerTokenOnBoard(playerId) {
+            gameState.highlightedPlayerId = playerId;
+            renderBoard();
+            updateAllUI();
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('monopolyBoard');
+            board.innerHTML = '';
+
+            const activePlayer = gameState.players[gameState.currentPlayerIdx];
+
+            BOARD_TILES.forEach((tile) => {
+                const pos = getGridPosition(tile.id);
+                const el = document.createElement('div');
+                const isCorner = [0, 10, 20, 30].includes(tile.id);
+                const isLuckyDraw = [3, 7, 15, 18, 22, 27, 33, 36].includes(tile.id);
+                el.className = `board-tile ${isCorner ? 'corner-tile' : ''}`;
+                el.className = `board-tile ${isLuckyDraw ? 'lucky-draw-tile' : ''}`;
+                el.style.gridRow = pos.row;
+                el.style.gridColumn = pos.col;
+
+                if (tile.pastel && !isCorner) {
+                    el.style.backgroundColor = '#ffffff';
+                }
+
+                el.onclick = () => showTileInfoPopup(tile.id);
+
+                const own = gameState.ownership[tile.id];
+                const ownerPlayer = own ? gameState.players[own.ownerId] : null;
+                const isComboActive = own && tile.group && hasFullComboGroup(own.ownerId, tile.group);
+
+                // Clean top color bar with Combo Group Tag (e.g. A, B, C...) & Stars
+                let colorBarHtml = tile.color
+                    ? `<div class="w-full h-3 sm:h-3.5 rounded-t-md px-1 flex items-center justify-between text-[8px] font-black text-white shadow-sm" style="background:${tile.color}">
+                        <span>${tile.group ? tile.group : ''}</span>
+                        <span>${own && own.level > 0 ? '★'.repeat(own.level) : (isComboActive ? '⚡' : '')}</span>
+                       </div>`
+                    : `<div class="w-full h-1"></div>`;
+
+                // Minimalist bottom indicator (Owner Color Bar OR nothing to avoid text clutter!)
+                let footerBadge = '';
+                if (ownerPlayer) {
+                    footerBadge = `<div class="w-full h-1 rounded-b-md" style="background:${ownerPlayer.color.hex}"></div>`;
+                } else {
+                    footerBadge = `<div class="w-full h-1"></div>`;
+                }
+
+                // Tokens on this tile
+                const tokensHere = gameState.players.filter(p => !p.bankrupt && p.position === tile.id);
+                const tokensHtml = tokensHere.map(p => {
+                    const isBlinking = (activePlayer && p.id === activePlayer.id) || (p.id === gameState.highlightedPlayerId);
+                    return `
+                        <div class="player-token ${isBlinking ? 'token-blinking' : ''}" style="background:${p.color.hex}" title="${p.charName} (${p.name})">
+                            ${isBlinking ? '<i class="fa-solid fa-caret-down token-pointer"></i>' : ''}
+                            <span>${p.emoji}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                el.innerHTML = `
+                    ${colorBarHtml}
+                    <div class="flex-1 flex flex-col items-center justify-center px-0.5 leading-none">
+                        <div class="text-sm sm:text-base leading-none">${tile.icon}</div>
+                        <div class="text-[8px] sm:text-[9.5px] font-extrabold text-slate-700 leading-tight truncate max-w-full mt-0.5">${tile.short}</div>
+                    </div>
+                    <div class="w-full flex flex-wrap items-center justify-center gap-0.5 min-h-[2px] z-20">
+                        ${tokensHtml}
+                    </div>
+                    ${footerBadge}
+                `;
+                board.appendChild(el);
+            });
+
+            // CENTER BOARD: CLEAN LOGO + PRE-ROLL ACTION HUB (MANAGE PROPERTY BEFORE ROLL OR ROLL DICE)
+            const center = document.createElement('div');
+            center.className = 'board-center select-none p-4 text-center';
+
+            const canHumanAct = activePlayer && !activePlayer.isBot && !gameState.isProcessing;
+            const myOwnedCount = activePlayer
+                ? Object.values(gameState.ownership).filter(o => o.ownerId === activePlayer.id).length
+                : 0;
+            const upgradableCount = activePlayer
+                ? Object.entries(gameState.ownership).filter(([tid, o]) => {
+                    const t = BOARD_TILES[parseInt(tid)];
+                    return o.ownerId === activePlayer.id && t.type === 'property' && o.level < 4 && activePlayer.cycleCount > o.boughtAtCycle;
+                  }).length
+                : 0;
+
+            center.innerHTML = `
+                <div class="pointer-events-none flex flex-col items-center justify-center">
+                    <span class="px-3 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 text-[9px] sm:text-[10px] font-extrabold tracking-widest uppercase mb-1">
+                        Edisi Nusantara +62
+                    </span>
+                    <h2 class="font-display text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-slate-800">
+                        KONOHA<span class="text-rose-500">POLY</span>
+                    </h2>
+                </div>
+
+                <!-- Pre-Roll Turn Hub (Feedback #3: Mudah dijangkau tepat sebelum roll dadu!) -->
+                ${
+                    activePlayer
+                        ? `
+                        <div class="mt-3 sm:mt-5 bg-white/95 border-2 border-slate-200 rounded-3xl px-4 py-3 shadow-lg max-w-md w-full flex flex-col items-center gap-2.5">
+                            <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white shadow-sm" style="background:${activePlayer.color.hex}">${activePlayer.emoji}</span>
+                                <span>Giliran: <b class="text-slate-900">${activePlayer.charName} (${activePlayer.name})</b></span>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-center gap-2 w-full">
+                                ${
+                                    !activePlayer.isBot
+                                        ? `
+                                        <button onclick="openUpgradeDrawer()" ${!canHumanAct ? 'disabled' : ''}
+                                            class="px-4 py-2.5 rounded-2xl bg-sky-50 hover:bg-sky-100 text-sky-700 border-2 border-sky-200 font-display text-xs sm:text-sm flex items-center gap-1.5 transition disabled:opacity-40">
+                                            <i class="fa-solid fa-building-wheat"></i>
+                                            <span>Kelola Aset (${myOwnedCount})</span>
+                                            ${upgradableCount > 0 && !activePlayer.upgradedThisTurn ? `<span class="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-sans font-extrabold">Bisa Upgrade!</span>` : ''}
+                                        </button>
+                                        `
+                                        : ''
+                                }
+
+                                <button id="btnCenterRoll" onclick="openDiceRollPopup()" ${!canHumanAct ? 'disabled' : ''}
+                                    class="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-display text-xs sm:text-sm shadow-md shadow-orange-500/20 flex items-center gap-2 transition transform hover:scale-105 disabled:opacity-50 disabled:pointer-events-none">
+                                    <i class="fa-solid fa-dice text-base"></i>
+                                    <span>${activePlayer.isBot ? `BOT ${activePlayer.charName.toUpperCase()} BERJALAN...` : (gameState.canRollAgain ? 'LEMPAR DADU EKSTRA!' : 'LEMPAR DADU')}</span>
+                                </button>
+                            </div>
+                        </div>
+                        `
+                        : ''
+                }
+            `;
+            board.appendChild(center);
+        }
+
+        /**************************************************************
+         * 7. COMPACT PLAYER BAR (PASTEL GAME CARDS)
+         **************************************************************/
+        function updateAllUI() {
+            document.getElementById('roundHeaderBadge').textContent = `#${gameState.turnNumber}`;
+
+            const bar = document.getElementById('playersCompactBar');
+            bar.innerHTML = '';
+
+            gameState.players.forEach((p, idx) => {
+                const isTurn = idx === gameState.currentPlayerIdx;
+                const isHighlighted = p.id === gameState.highlightedPlayerId;
+
+                const card = document.createElement('div');
+                card.onclick = () => focusPlayerTokenOnBoard(p.id);
+                card.className = `cursor-pointer rounded-2xl px-2.5 py-2 border-2 transition relative flex items-center justify-between gap-1.5 ${
+                    p.bankrupt
+                        ? 'bg-slate-100 border-slate-200 opacity-45'
+                        : isTurn
+                        ? 'bg-white border-rose-500 ring-2 ring-rose-300/50 shadow-md'
+                        : isHighlighted
+                        ? 'bg-white border-sky-400 shadow-sm'
+                        : 'bg-white/85 border-slate-200/90 hover:border-slate-300'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 border-2 border-white shadow-sm" style="background:${p.color.hex}">
+                            ${p.emoji}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1">
+                                <span class="font-display text-xs sm:text-sm text-slate-800 truncate leading-none">${p.charName}</span>
+                                <span class="w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[8px] shrink-0" title="Kategori: ${p.charType}">
+                                    <i class="fa-solid ${p.typeIcon}"></i>
+                                </span>
+                            </div>
+                            <div class="text-[10px] text-slate-500 truncate flex items-center gap-1 leading-tight">
+                                <span>${p.name}</span>
+                                ${p.isBot ? '<i class="fa-solid fa-robot text-[9px] text-rose-500" title="Bot"></i>' : ''}
+                                ${p.inJail ? '<span class="text-[8px] px-1 rounded bg-orange-500 text-white font-bold">KPK</span>' : ''}
+                            </div>
+                            <div class="font-display text-[11px] leading-tight ${p.money < 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                                ${p.bankrupt ? 'BANGKRUT' : formatShortRp(p.money)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="event.stopPropagation(); showCharacterDetailTooltip('${p.charId}', '${p.name}')"
+                        class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-[11px] shrink-0 transition"
+                        title="Lihat Buff & Debuff ${p.charName}">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </button>
+                `;
+                bar.appendChild(card);
+            });
+        }
+
+        function showCharacterDetailTooltip(charId, playerName) {
+            const c = CHARACTERS[charId];
+            if (!c) return;
+            openCenterPopup({
+                badge: `PROFIL KARAKTER • ${playerName.toUpperCase()}`,
+                illustration: `<div class="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-200 flex items-center justify-center text-4xl mx-auto">${c.emoji}</div>`,
+                title: `${c.name}`,
+                body: `
+                    <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold mb-1">
+                        <i class="fa-solid ${c.typeIcon}"></i> Kategori: ${c.type}
+                    </div>
+                    <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-left space-y-2 text-xs">
+                        <ul class="space-y-2">
+                            <li class="flex"><span class="text-emerald-700"><b>BUFF:</b></span> ${c.buffDesc}</li>
+                            <li class="flex"><span class="text-rose-600"><b>DEBUFF:</b></span> ${c.debuffDesc}</li>
+                            <li class="flex"><span class="text-sky-700"><b>DICE:</b></span> ${c.diceDesc}</li>
+                        </ul>
+                    </div>
+                `,
+                actions: `<button onclick="closeCenterPopup()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">Tutup</button>`
+            });
+        }
+
+        function showTileInfoPopup(tileId) {
+            const tile = BOARD_TILES[tileId];
+            const own = gameState.ownership[tileId];
+            const owner = own ? gameState.players[own.ownerId] : null;
+            const currentRent = calculateTileRent(tile, own ? own.level : 0, own ? own.ownerId : null);
+            const grp = tile.group ? COMBO_GROUPS[tile.group] : null;
+            const comboActive = own && tile.group && hasFullComboGroup(own.ownerId, tile.group);
+
+            let detailHtml = '';
+            if (tile.price) {
+                detailHtml = `
+                    ${grp ? `<div class="inline-block px-3 py-0.5 rounded-full text-[11px] font-bold mb-1" style="background:${grp.pastel}; color:${grp.color}">${grp.name} (Sewa +20% jika lengkap)</div>` : ''}
+                    <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1.5 text-xs text-left">
+                        <div class="flex justify-between"><span>Harga Beli:</span><b class="text-amber-600">${formatRp(tile.price)}</b></div>
+                        <div class="flex justify-between"><span>Sewa Saat Ini:</span><b class="text-emerald-600">${formatRp(currentRent)} ${comboActive ? '⚡(Kombo +20%)' : ''}</b></div>
+                        ${tile.type === 'property' ? `<div class="flex justify-between"><span>Biaya Upgrade / Lv:</span><b class="text-sky-600">${formatRp(Math.round(tile.price * 0.5))}</b></div>` : ''}
+                        <div class="flex justify-between"><span>Pemilik:</span><b class="text-slate-800">${owner ? `${owner.emoji} ${owner.charName} (${UPGRADE_LABELS[own.level]})` : 'Tanah Negara'}</b></div>
+                    </div>
+                `;
+            } else {
+                detailHtml = `<p class="text-xs text-slate-600 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">${tile.desc}</p>`;
+            }
+
+            openCenterPopup({
+                badge: `INFO PETAK #${tile.id}`,
+                illustration: `<div class="w-16 h-16 rounded-2xl bg-slate-50 border-2 border-slate-200 flex items-center justify-center text-4xl mx-auto">${tile.icon}</div>`,
+                title: tile.name,
+                body: `<div class="text-xs text-slate-500 font-semibold mb-1">${tile.landmark || ''}</div>${detailHtml}`,
+                actions: `<button onclick="closeCenterPopup()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">Tutup</button>`
+            });
+        }
+
+        /**************************************************************
+         * 8. CENTRALIZED DICE POPUP & MOVEMENT FLOW (SLOWER BOT, NO BOT BUTTONS)
+         **************************************************************/
+        const DICE_ICONS = ['fa-ban', 'fa-dice-one', 'fa-dice-two', 'fa-dice-three', 'fa-dice-four', 'fa-dice-five', 'fa-dice-six'];
+
+        function rollSingleWeightedDie(preferHigh, preferLow) {
+            const r = Math.random();
+            if (preferHigh) return r < 0.60 ? [4, 5, 6][Math.floor(Math.random() * 3)] : [1, 2, 3][Math.floor(Math.random() * 3)];
+            if (preferLow) return r < 0.60 ? [1, 2, 3][Math.floor(Math.random() * 3)] : [4, 5, 6][Math.floor(Math.random() * 3)];
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        function computeCharacterDice(player) {
+            player.rollCount += 1;
+            const isFourthRoll = (player.rollCount % 4 === 0);
+            let d1 = 1, d2 = 1, specialNote = '';
+
+            // Pria Solo Debuff: 1 petak sebelum bangunan milik Rakyat -> otomatis maju 1 langkah
+            const nextTileIndex = (player.position + 1) % 40;
+            const nextOwn = gameState.ownership[nextTileIndex];
+            if (player.charId === 'pria_solo' && nextOwn && nextOwn.ownerId !== player.id) {
+                const nextOwner = gameState.players[nextOwn.ownerId];
+                if (nextOwner && nextOwner.charType === 'Rakyat') {
+                    return {
+                        d1: 1, d2: 0, total: 1, isDouble: false,
+                        specialNote: 'Debuff Pria Solo: 1 petak sebelum bangunan Rakyat, otomatis belok 1 langkah!'
+                    };
+                }
+            }
+
+            if (isFourthRoll) {
+                if (player.charId === 'pria_solo') {
+                    const val = Math.floor(Math.random() * 6) + 1;
+                    return { d1: val, d2: val, total: val * 2, isDouble: true, specialNote: 'Roll Ke-4 Pria Solo: Pasti Kembar!' };
+                }
+                if (player.charId === 'pemuda_pancasila') {
+                    d1 = [1, 2, 3][Math.floor(Math.random() * 3)];
+                    d2 = [1, 2, 3][Math.floor(Math.random() * 3)];
+                    return { d1, d2, total: d1 + d2, isDouble: d1 === d2, specialNote: 'Roll Ke-4 Pemuda Pancasila: Angka Kecil!' };
+                }
+                if (player.charId === 'pengusaha') {
+                    d1 = [4, 5, 6][Math.floor(Math.random() * 3)];
+                    d2 = [4, 5, 6][Math.floor(Math.random() * 3)];
+                    return { d1, d2, total: d1 + d2, isDouble: d1 === d2, specialNote: 'Roll Ke-4 Pengusaha: Angka Besar!' };
+                }
+            }
+
+            if (player.charId === 'gemoy') {
+                d1 = rollSingleWeightedDie(true, false);
+                d2 = rollSingleWeightedDie(true, false);
+            } else if (player.charId === 'warga') {
+                d1 = rollSingleWeightedDie(false, true);
+                d2 = rollSingleWeightedDie(false, true);
+            } else {
+                d1 = rollSingleWeightedDie(false, false);
+                d2 = rollSingleWeightedDie(false, false);
+            }
+
+            return { d1, d2, total: d1 + d2, isDouble: d1 === d2 && d2 > 0, specialNote };
+        }
+
+        async function openDiceRollPopup() {
+            if (gameState.isProcessing) return;
+            const player = gameState.players[gameState.currentPlayerIdx];
+            if (!player || player.bankrupt) return;
+
+            gameState.isProcessing = true;
+            gameState.highlightedPlayerId = player.id;
+            updateAllUI();
+            renderBoard();
+
+            openCenterPopup({
+                badge: `GILIRAN ${player.charName.toUpperCase()} (${player.name})`,
+                illustration: `
+                    <div class="flex items-center justify-center gap-4 my-2">
+                        <div id="popupDie1" class="w-16 h-16 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-4xl shadow-lg animate-dice">
+                            <i class="fa-solid fa-dice-three"></i>
+                        </div>
+                        <div id="popupDie2" class="w-16 h-16 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-4xl shadow-lg animate-dice">
+                            <i class="fa-solid fa-dice-five"></i>
+                        </div>
+                    </div>
+                `,
+                title: 'Mengocok Dadu...',
+                body: `<p class="text-xs text-slate-500">Menentukan langkah di papan Konohapoly...</p>`,
+                actions: ''
+            });
+
+            playTone('dice');
+            await new Promise(r => setTimeout(r, 850));
+
+            const roll = computeCharacterDice(player);
+            const d1El = document.getElementById('popupDie1');
+            const d2El = document.getElementById('popupDie2');
+            if (d1El && d2El) {
+                d1El.classList.remove('animate-dice');
+                d2El.classList.remove('animate-dice');
+                d1El.innerHTML = `<i class="fa-solid ${DICE_ICONS[roll.d1]}"></i>`;
+                d2El.innerHTML = roll.d2 === 0 ? `<span class="text-sm font-black">+0</span>` : `<i class="fa-solid ${DICE_ICONS[roll.d2]}"></i>`;
+            }
+
+            document.getElementById('popupTitle').textContent = `Maju ${roll.total} Langkah! ${roll.isDouble ? '✨ (KEMBAR!)' : ''}`;
+            document.getElementById('popupBody').innerHTML = roll.specialNote
+                ? `<div class="text-xs font-bold text-rose-600">${roll.specialNote}</div>`
+                : `<div class="text-xs text-slate-600">Dadu: ${roll.d1} + ${roll.d2} = <b>${roll.total}</b></div>`;
+
+            addLog(`🎲 <b>${player.charName} (${player.name})</b> melempar dadu: <b>${roll.total}</b>.`, 'normal');
+
+            // Beri jeda lebih nyaman agar pemain sempat membaca angka dadu (Feedback #2)
+            await new Promise(r => setTimeout(r, 1150));
+            closeCenterPopup();
+
+            // Cek jika di Rutan KPK
+            if (player.inJail) {
+                if (roll.isDouble || player.jailTurns >= 1) {
+                    player.inJail = false;
+                    player.jailTurns = 0;
+                    addLog(`🔓 <b>${player.charName}</b> bebas dari Rutan KPK!`, 'good');
+                } else {
+                    player.jailTurns += 1;
+                    addLog(`⛓️ <b>${player.charName}</b> masih ditahan di Rutan KPK.`, 'bad');
+                    gameState.canRollAgain = false;
+                    await showQuickOutcomePopup({
+                        badge: 'RUTAN KPK',
+                        icon: '⛓️',
+                        title: 'Masih Ditahan KPK!',
+                        desc: `${player.charName} belum mendapat dadu kembar. Harus menunggu giliran berikutnya.`
+                    });
+                    completeActionAndAdvanceTurn();
+                    return;
+                }
+            }
+
+            if (roll.isDouble && !gameState.extraRollGrantedThisTurn) {
+                gameState.extraRollGrantedThisTurn = true;
+                gameState.canRollAgain = true;
+            } else {
+                gameState.canRollAgain = false;
+            }
+
+            await movePlayerSteps(player, roll.total, true);
+        }
+
+        async function movePlayerSteps(player, steps, forward = true) {
+            const count = Math.abs(steps);
+            for (let s = 0; s < count; s++) {
+                const prevPos = player.position;
+                if (forward) {
+                    player.position = (player.position + 1) % 40;
+                    if (prevPos === 39 && player.position === 0) {
+                        handlePassStart(player);
+                    }
+                } else {
+                    player.position = (player.position - 1 + 40) % 40;
+                }
+                playTone('step');
+                renderBoard();
+                await new Promise(r => setTimeout(r, 150));
+            }
+
+            await evaluateTileLanding(player);
+        }
+
+        /**************************************************************
+         * 9. LOGIKA LEWAT START & EFEK KARAKTER
+         **************************************************************/
+        function handlePassStart(player) {
+            player.cycleCount += 1;
+            player.boughtThisCycle = 0;
+            player.upgradesThisCycle = 0;
+
+            if (player.skipNextSalary) {
+                player.skipNextSalary = false;
+                addLog(`😭 <b>${player.charName}</b> terkena efek <b>GA GAJIAN</b> saat lewat START!`, 'bad');
+                return;
+            }
+
+            const baseSalary = 5000000;
+            let finalSalary = baseSalary;
+
+            if (player.charId === 'warga') {
+                const taxCut = Math.round(baseSalary * 0.10);
+                finalSalary -= taxCut;
+                addLog(`🧾 <b>Debuff Warga:</b> Gaji dipotong pajak 10% (${formatRp(taxCut)}).`, 'bad');
+            }
+
+            if (player.charId === 'pengusaha') {
+                const bonus = Math.round(baseSalary * 0.10);
+                finalSalary += bonus;
+                addLog(`💼 <b>Buff Pengusaha:</b> Bonus dividen START +10% (${formatRp(bonus)}).`, 'good');
+            }
+
+            player.money += finalSalary;
+            playTone('cash');
+            addLog(`🏁 <b>${player.charName}</b> lewat START & terima gaji <b>${formatRp(finalSalary)}</b>.`, 'good');
+
+            if (player.charType !== 'Rakyat') {
+                const buzzers = gameState.players.filter(p => !p.bankrupt && p.charId === 'buzzerp' && p.id !== player.id);
+                buzzers.forEach(bz => {
+                    const buzzBonus = Math.round(baseSalary * 0.10);
+                    bz.money += buzzBonus;
+                    addLog(`🤳 <b>Buff Buzzerp:</b> <b>${bz.name}</b> dapat komisi 10% (${formatRp(buzzBonus)}) karena Pejabat lewat START!`, 'good');
+                });
+            }
+        }
+
+        function triggerGemoyCardRewardBuff(winnerPlayer, rewardAmount) {
+            if (rewardAmount <= 0) return [];
+            const gemoys = gameState.players.filter(p => !p.bankrupt && p.charId === 'gemoy');
+            const notes = [];
+            gemoys.forEach(gm => {
+                const bonus40 = Math.round(rewardAmount * 0.40);
+                gm.money += bonus40;
+                const msg = `🕺 Buff Gemoy: ${gm.name} ikut kecipratan 40% (+${formatRp(bonus40)}) dari hadiah kartu!`;
+                notes.push(msg);
+                addLog(msg, 'good');
+            });
+            return notes;
+        }
+
+        function executeFineWithGemoyDebuff(finedPlayer, rawFineAmount, reasonText) {
+            const otherGemoys = gameState.players.filter(p => !p.bankrupt && p.charId === 'gemoy' && p.id !== finedPlayer.id);
+            if (otherGemoys.length > 0) {
+                const gemoyShareTotal = Math.round(rawFineAmount * 0.50);
+                const playerShare = rawFineAmount - gemoyShareTotal;
+                const eachGemoyPay = Math.round(gemoyShareTotal / otherGemoys.length);
+
+                finedPlayer.money -= playerShare;
+                otherGemoys.forEach(gm => {
+                    gm.money -= eachGemoyPay;
+                    addLog(`🕺 <b>Debuff Gemoy:</b> <b>${gm.name}</b> menalangi 50% denda ${finedPlayer.name} (${formatRp(eachGemoyPay)}).`, 'bad');
+                });
+                return `Denda ${formatRp(playerShare)} (50% ditalangi Gemoy!)`;
+            } else {
+                finedPlayer.money -= rawFineAmount;
+                return `Denda dibayar penuh: ${formatRp(rawFineAmount)}`;
+            }
+        }
+
+        function applyPemudaPancasilaLevy(buyerPlayer, baseCost, actionLabel) {
+            const ppPlayers = gameState.players.filter(p => !p.bankrupt && p.charId === 'pemuda_pancasila' && p.id !== buyerPlayer.id);
+            if (ppPlayers.length === 0) return 0;
+            const totalLevy = Math.round(baseCost * 0.10);
+            const perPP = Math.round(totalLevy / ppPlayers.length);
+            buyerPlayer.money -= totalLevy;
+            ppPlayers.forEach(pp => {
+                pp.money += perPP;
+                addLog(`🐯 <b>Buff Pemuda Pancasila:</b> <b>${pp.name}</b> memungut 10% (${formatRp(perPP)}) dari ${actionLabel}.`, 'info');
+            });
+            return totalLevy;
+        }
+
+        /**************************************************************
+         * 10. EVALUASI PETAK & PERHITUNGAN SEWA KOMBO (+20%)
+         **************************************************************/
+        function calculateTileRent(tile, level, ownerId) {
+            if (!tile.baseRent) return 0;
+            if (tile.type === 'transport') {
+                if (ownerId === null || ownerId === undefined) return tile.baseRent;
+                const count = Object.entries(gameState.ownership).filter(([tid, o]) => {
+                    return o.ownerId === ownerId && BOARD_TILES[parseInt(tid)].type === 'transport';
+                }).length;
+                return tile.baseRent * Math.max(1, count);
+            }
+            if (tile.type === 'utility') return tile.baseRent;
+
+            const mult = [1, 1.5, 2.2, 3.2, 4.5];
+            let rent = Math.round(tile.baseRent * (mult[level] || 1));
+
+            // Feedback #4: Jika pemilik menguasai seluruh kota dalam 1 Kombo Warna, harga sewa naik +20%!
+            if (ownerId !== null && ownerId !== undefined && tile.group && hasFullComboGroup(ownerId, tile.group)) {
+                rent = Math.round(rent * 1.20);
+            }
+            return rent;
+        }
+
+        async function evaluateTileLanding(player) {
+            const tile = BOARD_TILES[player.position];
+
+            const exemptParking = ['jail', 'chest', 'chance', 'tax'];
+            let parkingNote = '';
+            if (!exemptParking.includes(tile.type)) {
+                player.money -= 20000;
+                parkingNote = '🅿️ Termasuk bayar parkir liar Rp20.000';
+            }
+
+            updateAllUI();
+
+            // 1. PETAK PAJAK
+            if (tile.type === 'tax') {
+                player.money -= tile.taxAmount;
+                playTone('bad');
+                addLog(`🧾 <b>${player.charName}</b> membayar ${tile.name} sebesar ${formatRp(tile.taxAmount)}.`, 'bad');
+                await showQuickOutcomePopup({
+                    badge: 'SETORAN PAJAK NEGARA',
+                    icon: tile.icon,
+                    title: tile.name,
+                    desc: `Saldo berkurang <b class="text-rose-600">${formatRp(tile.taxAmount)}</b>.`
+                });
+                completeActionAndAdvanceTurn();
+                return;
+            }
+
+            // 2. OTT KPK (MASUK PENJARA)
+            if (tile.type === 'gotojail') {
+                playTone('bad');
+                player.position = 10;
+                player.inJail = true;
+                player.jailTurns = 0;
+                gameState.canRollAgain = false;
+                renderBoard();
+                addLog(`🚨 <b>OTT KPK!</b> <b>${player.charName}</b> langsung masuk Rutan KPK!`, 'bad');
+                await showQuickOutcomePopup({
+                    badge: 'OPERASI TANGKAP TANGAN',
+                    icon: '🚨',
+                    title: 'Masuk Rutan KPK!',
+                    desc: `${player.charName} tertangkap tangan dan langsung dipindahkan ke Penjara KPK!`
+                });
+                completeActionAndAdvanceTurn();
+                return;
+            }
+
+            // 3. DANA UMUM / KESEMPATAN
+            if (tile.type === 'chest' || tile.type === 'chance') {
+                await triggerCardDrawPopup(player, tile);
+                return;
+            }
+
+            // 4. PROPERTI / TRANSPORT / UTILITAS
+            if (['property', 'utility', 'transport'].includes(tile.type)) {
+                await handleBuyableTilePopup(player, tile, parkingNote);
+                return;
+            }
+
+            // 5. PETAK BIASA
+            if (!player.isBot) {
+                await showQuickOutcomePopup({
+                    badge: `TIBA DI PETAK #${tile.id}`,
+                    icon: tile.icon,
+                    title: tile.name,
+                    desc: `${tile.desc} ${parkingNote ? `<div class="text-[11px] text-amber-600 font-semibold mt-1">${parkingNote}</div>` : ''}`
+                });
+            }
+            completeActionAndAdvanceTurn();
+        }
+
+        async function handleBuyableTilePopup(player, tile, parkingNote) {
+            const own = gameState.ownership[tile.id];
+            const grp = tile.group ? COMBO_GROUPS[tile.group] : null;
+
+            // A. BELUM ADA PEMILIK -> TAWARKAN BELI
+            if (!own) {
+                const canBuyQuota = player.boughtThisCycle < 2;
+                const canAfford = player.money >= tile.price;
+
+                // Feedback #2: Jika Bot yang membeli, tampilkan info singkat tanpa tombol & lebih pelan
+                if (player.isBot) {
+                    if (canBuyQuota && player.money >= tile.price + 4000000) {
+                        executeBuyProperty(player, tile);
+                        await showQuickOutcomePopup({
+                            badge: 'AKSI BOT • BELI ASET',
+                            icon: tile.icon,
+                            title: `${player.charName} Membeli ${tile.short}!`,
+                            desc: `Bot membeli <b>${tile.name}</b> seharga <b class="text-amber-600">${formatRp(tile.price)}</b>.`
+                        });
+                    }
+                    completeActionAndAdvanceTurn();
+                    return;
+                }
+
+                if (!canBuyQuota || !canAfford) {
+                    const reason = !canBuyQuota
+                        ? 'Kuota beli siklus ini sudah penuh (Maksimal 2 properti / putaran START).'
+                        : `Saldo kas tidak mencukupi untuk membeli aset ini (${formatRp(tile.price)}).`;
+
+                    await showQuickOutcomePopup({
+                        badge: 'TANAH NEGARA',
+                        icon: tile.icon,
+                        title: tile.name,
+                        desc: `${reason}<div class="text-[11px] text-amber-600 mt-2">${parkingNote}</div>`
+                    });
+                    completeActionAndAdvanceTurn();
+                    return;
+                }
+
+                openCenterPopup({
+                    badge: `BELI PROPERTI • KUOTA ${player.boughtThisCycle}/2`,
+                    illustration: `<div class="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-200 flex items-center justify-center text-4xl mx-auto shadow-sm">${tile.icon}</div>`,
+                    title: tile.name,
+                    body: `
+                        ${grp ? `<div class="inline-block px-3 py-0.5 rounded-full text-[11px] font-bold" style="background:${grp.pastel}; color:${grp.color}">${grp.name} (+20% Sewa jika lengkap)</div>` : ''}
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1.5 text-xs text-left">
+                            <div class="flex justify-between"><span>Harga Properti:</span><b class="text-amber-600">${formatRp(tile.price)}</b></div>
+                            <div class="flex justify-between"><span>Sewa Dasar:</span><b class="text-emerald-600">${formatRp(tile.baseRent)}</b></div>
+                            <div class="flex justify-between"><span>Saldo Kasmu:</span><b class="text-slate-800">${formatRp(player.money)}</b></div>
+                        </div>
+                        <div class="hidden text-[11px] text-slate-400">${parkingNote}</div>
+                    `,
+                    actions: `
+                        <button onclick="skipBuyAndFinishTurn()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs">
+                            Lewati & Akhiri
+                        </button>
+                        <button onclick="confirmBuyAndFinishTurn(${tile.id})" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-display text-xs shadow-md">
+                            Beli Sekarang (${formatShortRp(tile.price)})
+                        </button>
+                    `
+                });
+                return;
+            }
+
+            // B. MILIK SENDIRI -> OPSI UPGRADE LANGSUNG S/D LEVEL MAKSIMAL
+            if (own.ownerId === player.id) {
+                const passedStart = player.cycleCount > own.boughtAtCycle;
+                const costPerLv = Math.round(tile.price * 0.5);
+
+                if (tile.type === 'property' && own.level < 4 && passedStart && player.money >= costPerLv) {
+                    if (player.isBot) {
+                        while (own.level < 4 && player.money >= costPerLv * 2) {
+                            own.level += 1;
+                            player.money -= costPerLv;
+                            applyPemudaPancasilaLevy(player, costPerLv, `Upgrade ${tile.short}`);
+                        }
+                        renderBoard();
+                        completeActionAndAdvanceTurn();
+                        return;
+                    }
+
+                    let btns = `<button onclick="skipBuyAndFinishTurn()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs">Lewati</button>`;
+                    for (let targetLv = own.level + 1; targetLv <= 4; targetLv++) {
+                        const totalCost = (targetLv - own.level) * costPerLv;
+                        if (player.money >= totalCost) {
+                            btns += `
+                                <button onclick="confirmOnTileUpgradeAndFinish(${tile.id}, ${targetLv}, ${totalCost})"
+                                    class="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-display text-xs shadow">
+                                    Lv.${targetLv} (${formatShortRp(totalCost)})
+                                </button>
+                            `;
+                        }
+                    }
+
+                    openCenterPopup({
+                        badge: 'PROPERTI MILIKMU • UPGRADE S/D MAX',
+                        illustration: `<div class="w-16 h-16 rounded-2xl bg-sky-50 border-2 border-sky-200 flex items-center justify-center text-4xl mx-auto">${tile.icon}</div>`,
+                        title: `Upgrade ${tile.name}`,
+                        body: `
+                            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1.5 text-xs text-left">
+                                <div class="flex justify-between"><span>Status Saat Ini:</span><b class="text-amber-600">${UPGRADE_LABELS[own.level]}</b></div>
+                                <div class="flex justify-between"><span>Biaya per +1 Level:</span><b class="text-sky-600">${formatRp(costPerLv)}</b></div>
+                                <div class="flex justify-between"><span>Saldo Kasmu:</span><b class="text-emerald-600">${formatRp(player.money)}</b></div>
+                            </div>
+                        `,
+                        actions: btns
+                    });
+                    return;
+                } else {
+                    if (!player.isBot) {
+                        const msg = !passedStart
+                            ? 'Properti ini baru bisa di-upgrade setelah kamu melewati garis START 1 kali.'
+                            : 'Kamu singgah di properti milikmu sendiri.';
+                        await showQuickOutcomePopup({
+                            badge: 'ASET SENDIRI',
+                            icon: tile.icon,
+                            title: tile.name,
+                            desc: `${msg}<div class="text-[11px] text-amber-600 mt-1">${parkingNote}</div>`
+                        });
+                    }
+                    completeActionAndAdvanceTurn();
+                    return;
+                }
+            }
+
+            // C. MILIK PEMAIN LAIN -> BAYAR SEWA (TERMASUK KOMBO +20%)
+            const owner = gameState.players[own.ownerId];
+            if (!owner || owner.bankrupt) {
+                completeActionAndAdvanceTurn();
+                return;
+            }
+
+            if (tile.type === 'utility' && player.charId === 'pria_solo') {
+                addLog(`👷 <b>Buff Pria Solo:</b> Bebas tagihan di ${tile.name}!`, 'good');
+                await showQuickOutcomePopup({
+                    badge: 'BUFF PRIA SOLO AKTIF',
+                    icon: '👷',
+                    title: `Bebas Tagihan ${tile.short}!`,
+                    desc: `Sebagai Pria Solo, kamu bebas biaya tagihan listrik/air milik ${owner.charName}!`
+                });
+                completeActionAndAdvanceTurn();
+                return;
+            }
+
+            let rent = calculateTileRent(tile, own.level, owner.id);
+            const comboActive = tile.group && hasFullComboGroup(owner.id, tile.group);
+            let extraNotes = [];
+
+            if (comboActive) {
+                extraNotes.push(`⚡ Kombo Wilayah ${COMBO_GROUPS[tile.group].name} Aktif: Sewa naik +20%!`);
+            }
+
+            if (player.charId === 'buzzerp' && owner.charType === 'Rakyat') {
+                const extra = Math.round(rent * 0.20);
+                rent += extra;
+                extraNotes.push(`🤳 Debuff Buzzerp: Sewa di bangunan Rakyat naik +20% (+${formatRp(extra)})`);
+            }
+
+            if (tile.type === 'utility' && player.charId === 'pengusaha') {
+                const extraUtil = Math.round(rent * 0.20);
+                const fineNote = executeFineWithGemoyDebuff(player, extraUtil, `Denda Utilitas ${tile.short}`);
+                extraNotes.push(`🕴️ Debuff Pengusaha (+20%): ${fineNote}`);
+            }
+
+            player.money -= rent;
+            owner.money += rent;
+            playTone('bad');
+            addLog(`🏨 <b>${player.charName}</b> membayar sewa <b>${formatRp(rent)}</b> ke <b>${owner.charName}</b> di ${tile.short}.`, 'bad');
+
+            await showQuickOutcomePopup({
+                badge: 'BAYAR SEWA PROPERTI',
+                icon: tile.icon,
+                title: tile.name,
+                desc: `
+                    Pemilik: <b>${owner.emoji} ${owner.charName} (${owner.name})</b><br>
+                    Sewa dibayarkan: <b class="text-rose-600">${formatRp(rent)}</b>
+                    ${extraNotes.length ? `<div class="mt-2 p-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">${extraNotes.join('<br>')}</div>` : ''}
+                `
+            });
+            completeActionAndAdvanceTurn();
+        }
+
+        function executeBuyProperty(player, tile) {
+            player.money -= tile.price;
+            player.boughtThisCycle += 1;
+            gameState.ownership[tile.id] = {
+                ownerId: player.id,
+                level: 0,
+                boughtAtCycle: player.cycleCount
+            };
+            playTone('cash');
+            applyPemudaPancasilaLevy(player, tile.price, `Pembelian ${tile.short}`);
+            addLog(`🏠 <b>${player.charName}</b> membeli <b>${tile.name}</b> (${formatRp(tile.price)}).`, 'good');
+
+            if (tile.group && hasFullComboGroup(player.id, tile.group)) {
+                addLog(`⚡ <b>KOMBO AKTIF!</b> <b>${player.charName}</b> menguasai penuh <b>${COMBO_GROUPS[tile.group].name}</b> (Sewa +20%)!`, 'good');
+            }
+            renderBoard();
+        }
+
+        function confirmBuyAndFinishTurn(tileId) {
+            const player = gameState.players[gameState.currentPlayerIdx];
+            const tile = BOARD_TILES[tileId];
+            executeBuyProperty(player, tile);
+            closeCenterPopup();
+            completeActionAndAdvanceTurn();
+        }
+
+        function confirmOnTileUpgradeAndFinish(tileId, targetLevel, totalCost) {
+            const player = gameState.players[gameState.currentPlayerIdx];
+            const tile = BOARD_TILES[tileId];
+            const own = gameState.ownership[tileId];
+            if (own) {
+                own.level = targetLevel;
+                player.money -= totalCost;
+                player.upgradesThisCycle = Math.min(3, player.upgradesThisCycle + 1);
+                playTone('upgrade');
+                applyPemudaPancasilaLevy(player, totalCost, `Upgrade ${tile.short}`);
+                addLog(`🏗️ <b>${player.charName}</b> meng-upgrade <b>${tile.name}</b> ke ${UPGRADE_LABELS[targetLevel]}!`, 'good');
+                renderBoard();
+            }
+            closeCenterPopup();
+            completeActionAndAdvanceTurn();
+        }
+
+        function skipBuyAndFinishTurn() {
+            closeCenterPopup();
+            completeActionAndAdvanceTurn();
+        }
+
+        /**************************************************************
+         * 11. DANA UMUM & KESEMPATAN (BOT POPUP TANPA TOMBOL & LEBIH PELAN)
+         **************************************************************/
+        async function triggerCardDrawPopup(player, tile) {
+            const goodCards = CARDS_DECK.filter(c => c.kind === 'good');
+            const badCards = CARDS_DECK.filter(c => c.kind === 'bad');
+
+            let goodProb = 0.52;
+            if (gameState.economy === 'krismon') goodProb = 0.32;
+            if (player.charId === 'warga') goodProb = 0.72;
+            else if (player.charId === 'pemuda_pancasila') goodProb = 0.40;
+
+            const isGood = Math.random() < goodProb;
+            const pool = isGood ? goodCards : badCards;
+            const baseCard = pool[Math.floor(Math.random() * pool.length)];
+
+            let moneyDelta = baseCard.money || 0;
+            let extraNotes = [];
+
+            if (isGood && player.charId === 'warga' && moneyDelta > 0) {
+                const bonusWarga = Math.round(moneyDelta * 0.50);
+                moneyDelta += bonusWarga;
+                extraNotes.push(`🧑‍🌾 Buff Warga: Hadiah meningkat +50% (+${formatRp(bonusWarga)})!`);
+            }
+
+            if (!isGood && gameState.economy === 'krismon' && moneyDelta < 0) {
+                moneyDelta = Math.round(moneyDelta * 1.4);
+                extraNotes.push(`📉 Efek Krisis Moneter: Denda membengkak!`);
+            }
+
+            if (moneyDelta > 0) {
+                player.money += moneyDelta;
+                playTone('cash');
+                const gemoyNotes = triggerGemoyCardRewardBuff(player, moneyDelta);
+                extraNotes.push(...gemoyNotes);
+            } else if (moneyDelta < 0) {
+                playTone('bad');
+                const fineAbs = Math.abs(moneyDelta);
+                if (baseCard.isFine) {
+                    const fineMsg = executeFineWithGemoyDebuff(player, fineAbs, baseCard.title);
+                    extraNotes.push(fineMsg);
+                } else {
+                    player.money -= fineAbs;
+                }
+            }
+
+            if (baseCard.noSalaryNextStart) {
+                player.skipNextSalary = true;
+                extraNotes.push(`🚫 Efek Ekstrem: TIDAK GAJIAN saat lewat START berikutnya!`);
+            }
+
+            addLog(`🃏 <b>${player.charName}</b> tarik kartu: <b>${baseCard.title}</b>`, isGood ? 'good' : 'bad');
+            updateAllUI();
+
+            // Feedback #2: Saat Bot menarik kartu, TIDAK PERLU ada tombol action dan durasinya diperlambat (2.2 detik) agar nyaman dibaca
+            await new Promise((resolve) => {
+                window._resolveCardPopup = resolve;
+                openCenterPopup({
+                    badge: tile.type === 'chest' ? '📦 DANA UMUM APBN' : '❓ KARTU KESEMPATAN',
+                    illustration: getCardVectorSVG(baseCard.svg),
+                    title: baseCard.title,
+                    body: `
+                        <p class="text-xs sm:text-sm text-slate-600">${baseCard.desc}</p>
+                        ${moneyDelta !== 0 ? `<div class="text-base font-display ${moneyDelta > 0 ? 'text-emerald-600' : 'text-rose-600'}">${moneyDelta > 0 ? '+' : ''}${formatRp(moneyDelta)}</div>` : ''}
+                        ${baseCard.moveDelta ? `<div class="text-xs font-extrabold text-sky-600">${baseCard.moveDelta > 0 ? `🚀 Maju ${baseCard.moveDelta} Petak` : `⏪ Mundur ${Math.abs(baseCard.moveDelta)} Petak`}</div>` : ''}
+                        ${extraNotes.length ? `<div class="bg-amber-50 p-2.5 rounded-xl border border-amber-200 text-[11px] text-amber-800 space-y-1">${extraNotes.join('<br>')}</div>` : ''}
+                    `,
+                    actions: player.isBot
+                        ? `<div class="text-[11px] font-bold text-slate-400 italic">🤖 Bot sedang memproses kartu...</div>`
+                        : `
+                        <button onclick="if(window._resolveCardPopup) window._resolveCardPopup()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 text-white font-display text-xs shadow-md">
+                            ${baseCard.moveDelta ? 'LANJUT GERAK PION' : 'TERIMA & LANJUTKAN'}
+                        </button>
+                    `
+                });
+
+                if (player.isBot) {
+                    setTimeout(() => {
+                        if (window._resolveCardPopup) window._resolveCardPopup();
+                    }, 2200);
+                }
+            });
+
+            closeCenterPopup();
+
+            if (baseCard.moveDelta) {
+                const steps = Math.abs(baseCard.moveDelta);
+                const isForward = baseCard.moveDelta > 0;
+                await movePlayerSteps(player, steps, isForward);
+                return;
+            }
+
+            completeActionAndAdvanceTurn();
+        }
+
+        /**************************************************************
+         * 12. PENYELESAIAN GILIRAN OTOMATIS (SLOWER BOT POPUP, NO ACTION BUTTON FOR BOT)
+         **************************************************************/
+        function showQuickOutcomePopup({ badge, icon, title, desc }) {
+            const current = gameState.players[gameState.currentPlayerIdx];
+            const isBotTurn = current && current.isBot;
+
+            return new Promise((resolve) => {
+                window._resolveQuickPopup = resolve;
+                openCenterPopup({
+                    badge,
+                    illustration: `<div class="w-16 h-16 rounded-2xl bg-slate-50 border-2 border-slate-200 flex items-center justify-center text-4xl mx-auto">${icon}</div>`,
+                    title,
+                    body: `<div class="text-xs sm:text-sm text-slate-600">${desc}</div>`,
+                    actions: isBotTurn
+                        ? `<div class="text-[11px] font-bold text-slate-400 italic">🤖 Giliran Bot berlanjut otomatis...</div>`
+                        : `
+                        <button onclick="if(window._resolveQuickPopup) window._resolveQuickPopup()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 text-white font-display text-xs shadow-md">
+                            OK, Lanjutkan
+                        </button>
+                    `
+                });
+
+                if (isBotTurn) {
+                    setTimeout(() => {
+                        if (window._resolveQuickPopup) window._resolveQuickPopup();
+                    }, 1850);
+                }
+            }).then(() => {
+                closeCenterPopup();
+            });
+        }
+
+        function completeActionAndAdvanceTurn() {
+            const player = gameState.players[gameState.currentPlayerIdx];
+            if (!player) return;
+
+            checkBankruptcy(player);
+            updateAllUI();
+            renderBoard();
+
+            const alive = gameState.players.filter(p => !p.bankrupt);
+            if (alive.length <= 1) {
+                if (alive[0]) showVictoryPopup(alive[0]);
+                return;
+            }
+
+            if (gameState.canRollAgain && !player.bankrupt && !player.inJail) {
+                gameState.isProcessing = false;
+                updateAllUI();
+                renderBoard();
+                if (player.isBot) {
+                    setTimeout(() => openDiceRollPopup(), 1000);
+                }
+                return;
+            }
+
+            if (player.isBot && !player.bankrupt) {
+                botTryRemoteUpgrade(player);
+            }
+
+            let nextIdx = gameState.currentPlayerIdx;
+            for (let i = 0; i < gameState.players.length; i++) {
+                nextIdx = (nextIdx + 1) % gameState.players.length;
+                if (!gameState.players[nextIdx].bankrupt) break;
+            }
+
+            gameState.currentPlayerIdx = nextIdx;
+            gameState.highlightedPlayerId = gameState.players[nextIdx].id;
+            gameState.turnNumber += 1;
+            gameState.extraRollGrantedThisTurn = false;
+            gameState.canRollAgain = false;
+            gameState.isProcessing = false;
+
+            const nextPlayer = gameState.players[nextIdx];
+            nextPlayer.upgradedThisTurn = false;
+
+            updateAllUI();
+            renderBoard();
+            checkIfBotTurn();
+        }
+
+        function checkIfBotTurn() {
+            const current = gameState.players[gameState.currentPlayerIdx];
+            if (current && current.isBot && !current.bankrupt) {
+                setTimeout(() => openDiceRollPopup(), 950);
+            }
+        }
+
+        function checkBankruptcy(player) {
+            while (player.money < 0) {
+                const ownedIds = Object.keys(gameState.ownership).filter(tid => gameState.ownership[tid].ownerId === player.id);
+                if (ownedIds.length === 0) break;
+                const sellId = parseInt(ownedIds[0]);
+                const tile = BOARD_TILES[sellId];
+                const own = gameState.ownership[sellId];
+                const val = Math.round((tile.price + own.level * tile.price * 0.5) * 0.7);
+                delete gameState.ownership[sellId];
+                player.money += val;
+                addLog(`🔨 <b>Sita Aset:</b> <b>${player.charName}</b> melelang ${tile.short} seharga ${formatRp(val)}.`, 'bad');
+            }
+            if (player.money < 0) {
+                player.bankrupt = true;
+                gameState.canRollAgain = false;
+                addLog(`💀 <b>PAILIT!</b> <b>${player.charName} (${player.name})</b> bangkrut!`, 'bad');
+            }
+        }
+
+        function botTryRemoteUpgrade(bot) {
+            if (bot.upgradedThisTurn || bot.upgradesThisCycle >= 3) return;
+            const list = Object.entries(gameState.ownership).filter(([tid, own]) => {
+                const t = BOARD_TILES[parseInt(tid)];
+                return own.ownerId === bot.id && t.type === 'property' && own.level < 4 && bot.cycleCount > own.boughtAtCycle;
+            });
+            if (list.length > 0) {
+                const tid = parseInt(list[0][0]);
+                const cost = Math.round(BOARD_TILES[tid].price * 0.5);
+                if (bot.money >= cost + 6000000) performRemoteUpgrade(tid);
+            }
+        }
+
+        /**************************************************************
+         * 13. PRE-ROLL MANAGE & UPGRADE DRAWER
+         **************************************************************/
+        function openUpgradeDrawer() {
+            renderUpgradeDrawerItems();
+            const m = document.getElementById('upgradeDrawerModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeUpgradeDrawer() {
+            const m = document.getElementById('upgradeDrawerModal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function renderUpgradeDrawerItems() {
+            const container = document.getElementById('upgradeDrawerList');
+            const p = gameState.players[gameState.currentPlayerIdx];
+            if (!p) return;
+
+            const owned = Object.entries(gameState.ownership).filter(([_, val]) => val.ownerId === p.id);
+            if (owned.length === 0) {
+                container.innerHTML = `
+                    <div class="text-xs text-slate-500 text-center py-8 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div class="text-3xl mb-2">🏘️</div>
+                        Belum ada properti yang dimiliki oleh <b>${p.charName} (${p.name})</b>.<br>
+                        Lempar dadu dan beli tanah negara untuk mulai membangun!
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="flex items-center justify-between bg-sky-50 border border-sky-200 px-3.5 py-2 rounded-2xl text-xs text-sky-900">
+                    <span>Kuota Upgrade Siklus Ini: <b>${p.upgradesThisCycle}/3</b></span>
+                    <span>Saldo: <b class="text-emerald-700">${formatRp(p.money)}</b></span>
+                </div>
+            `;
+
+            owned.forEach(([tidStr, own]) => {
+                const tid = parseInt(tidStr);
+                const tile = BOARD_TILES[tid];
+                const cost = Math.round(tile.price * 0.5);
+                const passedStart = p.cycleCount > own.boughtAtCycle;
+                const canUp = !p.isBot && tile.type === 'property' && own.level < 4 && passedStart && !p.upgradedThisTurn && p.upgradesThisCycle < 3 && p.money >= cost;
+                const comboActive = tile.group && hasFullComboGroup(p.id, tile.group);
+
+                let statusReason = UPGRADE_LABELS[own.level];
+                if (tile.type === 'property' && own.level < 4) {
+                    if (!passedStart) statusReason += ' • Tunggu lewat START 1x';
+                    else if (p.upgradedThisTurn) statusReason += ' • Sudah upgrade di giliran ini';
+                    else if (p.upgradesThisCycle >= 3) statusReason += ' • Kuota 3x siklus penuh';
+                }
+
+                const row = document.createElement('div');
+                row.className = 'bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-2';
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg border border-slate-200 bg-white">${tile.icon}</div>
+                        <div>
+                            <div class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                                <span>${tile.name}</span>
+                                ${tile.group ? `<span class="px-1.5 py-0.2 rounded text-[9px] text-white" style="background:${tile.color}">Kombo ${tile.group}</span>` : ''}
+                                ${comboActive ? `<span class="text-[10px] text-emerald-600 font-black">⚡+20%</span>` : ''}
+                            </div>
+                            <div class="text-[10px] text-slate-500 font-semibold">${statusReason}</div>
+                        </div>
+                    </div>
+                    ${
+                        canUp
+                            ? `<button onclick="performRemoteUpgrade(${tid})" class="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-display text-xs shadow-sm shrink-0">
+                                +1 Lv (${formatShortRp(cost)})
+                               </button>`
+                            : ''
+                    }
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function performRemoteUpgrade(tileId) {
+            const p = gameState.players[gameState.currentPlayerIdx];
+            const tile = BOARD_TILES[tileId];
+            const own = gameState.ownership[tileId];
+            if (!own || own.ownerId !== p.id) return;
+            const cost = Math.round(tile.price * 0.5);
+            if (p.money < cost || own.level >= 4 || p.upgradedThisTurn || p.upgradesThisCycle >= 3) return;
+
+            own.level += 1;
+            p.money -= cost;
+            p.upgradedThisTurn = true;
+            p.upgradesThisCycle += 1;
+            playTone('upgrade');
+            applyPemudaPancasilaLevy(p, cost, `Upgrade ${tile.short}`);
+            addLog(`🏗️ <b>${p.charName}</b> upgrade properti <b>${tile.short}</b> ke ${UPGRADE_LABELS[own.level]}!`, 'good');
+            renderBoard();
+            updateAllUI();
+            renderUpgradeDrawerItems();
+        }
+
+        function openCenterPopup({ badge, illustration, title, body, actions }) {
+            document.getElementById('popupTopBadge').textContent = badge;
+            document.getElementById('popupIllustration').innerHTML = illustration || '';
+            document.getElementById('popupTitle').textContent = title;
+            document.getElementById('popupBody').innerHTML = body;
+            document.getElementById('popupActions').innerHTML = actions || '';
+            const modal = document.getElementById('centerPopupModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCenterPopup() {
+            const modal = document.getElementById('centerPopupModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function showVictoryPopup(winner) {
+            openCenterPopup({
+                badge: 'PENGUASA TUNGGAL KONOHA',
+                illustration: `<div class="text-6xl my-2">🏆</div>`,
+                title: `${winner.emoji} ${winner.charName} (${winner.name}) Menang!`,
+                body: `<p class="text-xs sm:text-sm text-slate-600">Seluruh lawan telah bangkrut! Kekayaan akhir: <b class="text-emerald-600">${formatRp(winner.money)}</b>.</p>`,
+                actions: `<button onclick="closeCenterPopup(); showPreMatchWizard();" class="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 text-white font-display text-xs shadow-md">Main Lagi</button>`
+            });
+        }
+
+        function addLog(htmlMessage, category = 'normal') {
+            const container = document.getElementById('gameLogContainer');
+            const entry = document.createElement('div');
+            let cls = 'border-slate-300 text-slate-700 bg-white';
+            if (category === 'good') cls = 'border-emerald-500 text-emerald-800 bg-emerald-50/70';
+            if (category === 'bad') cls = 'border-rose-500 text-rose-800 bg-rose-50/70';
+            if (category === 'info') cls = 'border-amber-500 text-amber-900 bg-amber-50/70';
+            entry.className = `border-l-4 px-3 py-2 rounded-r-xl shadow-sm ${cls}`;
+            entry.innerHTML = htmlMessage;
+            container.prepend(entry);
+            document.getElementById('logUnreadDot').classList.remove('hidden');
+        }
+
+        function openLogsDrawer() {
+            document.getElementById('logUnreadDot').classList.add('hidden');
+            const m = document.getElementById('logsDrawerModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeLogsDrawer() {
+            const m = document.getElementById('logsDrawerModal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function openRulesModal() {
+            const m = document.getElementById('rulesModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeRulesModal() {
+            const m = document.getElementById('rulesModal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        window.onload = function () {
+            initSetupWizard();
+            renderBoard();
+        };
+    </script>
+</body>
+</html>
