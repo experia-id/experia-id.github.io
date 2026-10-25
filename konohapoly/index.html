@@ -154,6 +154,9 @@
                 top: -10px;
                 font-size: 8px;
             }
+            #boardContainer main {
+                zoom: 0.8;
+            }
         }
 
         @keyframes dice-shake {
@@ -370,7 +373,7 @@
         </div>
 
         <!-- Floating Game Utility Pill (Logs, Rules, Sound, Setup) -->
-        <div class="absolute top-0 right-0 hidden md:flex flex-col items-center gap-1.5 bg-white/90 backdrop-blur border-2 border-slate-200/80 px-2.5 py-1.5 rounded-2xl shadow-sm shrink-0">
+        <div class="absolute top-2 right-2 hidden md:flex flex-col items-center gap-1.5 bg-white/90 backdrop-blur border-2 border-slate-200/80 px-2.5 py-1.5 rounded-2xl shadow-sm shrink-0">
             <div class="hidden xl:flex flex-col items-end pr-2 border-r border-slate-200">
                 <span id="roundHeaderBadge" class="font-display text-xs text-rose-500">#1</span>
             </div>
@@ -1174,7 +1177,7 @@
 
                 // Clean top color bar with Combo Group Tag (e.g. A, B, C...) & Stars
                 let colorBarHtml = tile.color
-                    ? `<div class="w-full h-1 sm:h-2 rounded-t-md px-1 flex items-center justify-between text-[6px] sm:text-[8px] font-black text-white shadow-sm" style="background:${tile.color}">
+                    ? `<div class="w-full h-1 sm:h-3.5 rounded-t-md p-1 flex items-center justify-between text-[6px] sm:text-[10px] font-black text-white shadow-sm" style="background:${tile.color}">
                         <span>${tile.group ? tile.group : ''}</span>
                         <span>${own && own.level > 0 ? '★'.repeat(own.level) : (isComboActive ? '⚡' : '')}</span>
                        </div>`
@@ -1204,7 +1207,7 @@
                     ${colorBarHtml}
                     <div class="flex-1 flex flex-col items-center justify-center sm:px-0.5 leading-none">
                         <div class="text-sm sm:text-base leading-none">${tile.icon}</div>
-                        <div class="text-[8px] sm:text-[12px] font-extrabold text-slate-700 leading-tight truncate max-w-full mt-0.5">${tile.short}</div>
+                        <div class="max-w-[30px] md:max-w-[90px] overflow-hidden text-[8px] sm:text-[12px] font-extrabold text-slate-700 leading-tight truncate mt-0.5">${tile.short}</div>
                     </div>
                     <div class="w-16 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-wrap items-center justify-center gap-0.5 min-h-[2px] z-20">
                         ${tokensHtml}
@@ -1308,12 +1311,13 @@
                             ${p.emoji}
                         </div>
                         <div class="min-w-0">
-                            <div class="flex items-center gap-1">
+                            <div class="hidden flex items-center gap-1">
                                 <span class="hidden sm:block font-display text-xl sm:text-sm text-slate-800 truncate leading-none">${p.charName}</span>
                             </div>
                             <div class="text-[10px] text-slate-500 truncate flex items-center gap-1 leading-tight">
                                 <span>${p.name}</span>
-                                <span class="hidden sm:block w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[8px] shrink-0" title="Kategori: ${p.charType}">
+                                <span class="hidden sm:block font-display text-xl sm:text-sm text-slate-800 truncate leading-none">${p.charName}</span>
+                                <span class="hidden w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[8px] shrink-0" title="Kategori: ${p.charType}">
                                     <i class="fa-solid ${p.typeIcon}"></i>
                                 </span>
                                 ${p.isBot ? '<i class="hidden sm:block fa-solid fa-robot text-[9px] text-rose-500" title="Bot"></i>' : ''}
@@ -1547,7 +1551,7 @@
                 }
                 playTone('step');
                 renderBoard();
-                await new Promise(r => setTimeout(r, 150));
+                await new Promise(r => setTimeout(r, 250));
             }
 
             await evaluateTileLanding(player);
@@ -1780,7 +1784,7 @@
                     illustration: `<div class="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-200 flex items-center justify-center text-4xl mx-auto shadow-sm">${tile.icon}</div>`,
                     title: tile.name,
                     body: `
-                        ${grp ? `<div class="inline-block px-3 py-0.5 rounded-full text-[11px] font-bold" style="background:${grp.pastel}; color:${grp.color}">${grp.name} (+20% Sewa jika lengkap)</div>` : ''}
+                        ${grp ? `<div class="hidden inline-block px-3 py-0.5 rounded-full text-[11px] font-bold" style="background:${grp.pastel}; color:${grp.color}">${grp.name} (+20% Sewa jika lengkap)</div>` : ''}
                         <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1.5 text-xs text-left">
                             <div class="flex justify-between"><span>Harga Properti:</span><b class="text-amber-600">${formatRp(tile.price)}</b></div>
                             <div class="flex justify-between"><span>Sewa Dasar:</span><b class="text-emerald-600">${formatRp(tile.baseRent)}</b></div>
