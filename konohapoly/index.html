@@ -365,7 +365,7 @@
     <!-- 3. TOP HUD BAR (GAME-STYLE FLOATING CARDS + QUICK ICON POD, NO WEBSITE NAVBAR) -->
     <section class="w-auto md:w-full max-w-[1440px] mx-auto flex items-center justify-between gap-2 shrink-0">
         <!-- Player Cards Bar -->
-        <div id="playersCompactBar" class="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+        <div id="playersCompactBar" class="flex-1 grid grid-cols-4 md:grid-cols-6 gap-1 sm:gap-2">
             <!-- Injected via JS -->
         </div>
 
@@ -1292,7 +1292,7 @@
 
                 const card = document.createElement('div');
                 card.onclick = () => focusPlayerTokenOnBoard(p.id);
-                card.className = `cursor-pointer rounded-2xl px-2.5 py-2 border-2 transition relative flex items-center justify-between gap-1.5 ${
+                card.className = `cursor-pointer rounded-lg sm:rounded-2xl p-1 sm:px-2.5 sm:py-2 border sm:border-2 transition relative flex items-center justify-between gap-1 sm:gap-1.5 ${
                     p.bankrupt
                         ? 'bg-slate-100 border-slate-200 opacity-45'
                         : isTurn
@@ -1304,29 +1304,29 @@
 
                 card.innerHTML = `
                     <div class="flex items-center gap-2 min-w-0">
-                        <div class="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 border-2 border-white shadow-sm" style="background:${p.color.hex}">
+                        <div class="w-4 sm:w-8 h-4 sm:h-8 rounded-xl flex items-center justify-center text-base shrink-0 border sm:border-2 border-white shadow-sm" style="background:${p.color.hex}">
                             ${p.emoji}
                         </div>
                         <div class="min-w-0">
                             <div class="flex items-center gap-1">
-                                <span class="font-display text-xl sm:text-sm text-slate-800 truncate leading-none">${p.charName}</span>
+                                <span class="hidden sm:block font-display text-xl sm:text-sm text-slate-800 truncate leading-none">${p.charName}</span>
                             </div>
                             <div class="text-[10px] text-slate-500 truncate flex items-center gap-1 leading-tight">
                                 <span>${p.name}</span>
-                                <span class="w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[8px] shrink-0" title="Kategori: ${p.charType}">
+                                <span class="hidden sm:block w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[8px] shrink-0" title="Kategori: ${p.charType}">
                                     <i class="fa-solid ${p.typeIcon}"></i>
                                 </span>
-                                ${p.isBot ? '<i class="fa-solid fa-robot text-[9px] text-rose-500" title="Bot"></i>' : ''}
-                                ${p.inJail ? '<span class="text-[8px] px-1 rounded bg-orange-500 text-white font-bold">KPK</span>' : ''}
+                                ${p.isBot ? '<i class="hidden sm:block fa-solid fa-robot text-[9px] text-rose-500" title="Bot"></i>' : ''}
+                                ${p.inJail ? '<span class="hidden sm:block text-[8px] px-1 rounded bg-orange-500 text-white font-bold">KPK</span>' : ''}
                             </div>
-                            <div class="font-display text-2xl leading-tight ${p.money < 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                            <div class="font-display text-sm sm:text-2xl leading-tight ${p.money < 0 ? 'text-rose-600' : 'text-emerald-600'}">
                                 ${p.bankrupt ? 'BANGKRUT' : formatShortRp(p.money)}
                             </div>
                         </div>
                     </div>
 
                     <button onclick="event.stopPropagation(); showCharacterDetailTooltip('${p.charId}', '${p.name}')"
-                        class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-[11px] shrink-0 transition"
+                        class="hidden sm:block w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-[11px] shrink-0 transition"
                         title="Lihat Buff & Debuff ${p.charName}">
                         <i class="fa-solid fa-circle-question"></i>
                     </button>
