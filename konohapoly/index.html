@@ -18,7 +18,7 @@
             color: #1e293b;
             overflow: hidden;
             user-select: none;
-            height: 100vh;
+            height: 100dvh;
             width: 100vw;
         }
         .font-display {
@@ -26,7 +26,18 @@
             letter-spacing: 0.02em;
         }
 
-        /* Non-Square Rectangular Board that fits Desktop without Scrolling */
+        /* Board Container: Mengambil sisa ruang layar penuh baik di Desktop maupun Portrait Mobile */
+        #boardContainer {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Non-Square Rectangular Board yang adaptif (Melebar di Desktop, Memanjang ke bawah di Portrait Mobile) */
         .monopoly-board {
             display: grid;
             grid-template-columns: 1.25fr repeat(9, 1fr) 1.25fr;
@@ -70,6 +81,8 @@
             overflow: visible;
             border-radius: 8px;
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+            min-width: 0;
+            min-height: 0;
         }
         .board-tile:hover {
             z-index: 30;
@@ -134,15 +147,26 @@
             pointer-events: none;
         }
 
-        @media (max-width: 768px) {
+        /* Penyesuaian khusus Mode Portrait & Layar Mobile agar memanjang vertikal */
+        @media (orientation: portrait), (max-width: 768px) {
             body {
-                overflow-y: auto;
-                height: auto;
-                min-height: 100vh;
+                height: 100dvh;
+                overflow: hidden;
             }
             .monopoly-board {
-                aspect-ratio: 1 / 1.05;
-                height: auto;
+                width: 100%;
+                height: 100%;
+                /* Proporsi baris dibuat sedikit lebih tinggi di sisi atas/bawah dan vertikal */
+                grid-template-columns: 1.15fr repeat(9, 1fr) 1.15fr;
+                grid-template-rows: 1.15fr repeat(9, 1fr) 1.15fr;
+                gap: 2.5px;
+                padding: 3px;
+                border-width: 4px;
+                border-radius: 18px;
+            }
+            .board-tile {
+                padding: 1px 1.5px;
+                border-radius: 6px;
             }
             .player-token {
                 width: 15px;
@@ -153,9 +177,6 @@
             .token-pointer {
                 top: -10px;
                 font-size: 8px;
-            }
-            #boardContainer main {
-                zoom: 0.8;
             }
         }
 
@@ -179,24 +200,16 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-
-        #boardContainer {
-            width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-        }
     </style>
 </head>
-<body class="flex flex-col p-2 sm:p-4 gap-2 sm:gap-4 relative">
+<body class="flex flex-col p-2 sm:p-4 gap-2 sm:gap-3 relative">
 
     <!-- 1. INITIAL SPLASH SCREEN ("MULAI SEKARANG") -->
     <div id="splashScreen" class="fixed inset-0 z-50 bg-gradient-to-br from-amber-50 via-white to-sky-50 flex items-center justify-center p-4">
-        <!-- Decorative Pastel Blobs -->
         <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-rose-200/40 blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-sky-200/50 blur-3xl pointer-events-none"></div>
 
         <div class="max-w-xl w-full bg-white/90 backdrop-blur-md border-4 border-white rounded-[36px] shadow-[0_25px_70px_-15px_rgba(15,23,42,0.15)] p-4 sm:p-10 text-center relative z-10">
-            <!-- Vector Mascot / Illustration -->
             <div class="w-28 h-28 mx-auto mb-4 rounded-3xl bg-gradient-to-tr from-amber-100 to-rose-100 border-2 border-amber-200 flex items-center justify-center shadow-inner animate-float">
                 <svg class="w-20 h-20" viewBox="0 0 120 120" fill="none">
                     <rect x="20" y="56" width="80" height="44" rx="10" fill="#FDE68A" stroke="#F59E0B" stroke-width="4"/>
@@ -217,26 +230,15 @@
                 </p>
             </div>
 
-            <!-- Character Pills Preview -->
-            <div class="hidden flex flex-wrap items-center justify-center gap-1.5 my-6">
-                <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200">🕺 Gemoy</span>
-                <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200">👷 Pria Solo</span>
-                <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200">🧑‍🌾 Warga</span>
-                <span class="px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-xs font-bold border border-sky-200">🤳 Buzzerp</span>
-                <span class="px-3 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-bold border border-orange-200">🐯 Pemuda Pancasila</span>
-                <span class="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold border border-purple-200">🕴️ Pengusaha</span>
-            </div>
-
             <button onclick="openSetupFromSplash()" class="w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-display text-xl shadow-xl shadow-orange-500/25 transition transform hover:scale-105 active:scale-95">
                 MULAI <i class="fa-solid fa-play ml-2 text-base"></i>
             </button>
         </div>
     </div>
 
-    <!-- 2. PRE-MATCH WIZARD MODAL (CLEAN LIGHT PASTEL) -->
+    <!-- 2. PRE-MATCH WIZARD MODAL -->
     <div id="preMatchScreen" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
         <div class="max-w-2xl w-full bg-white border-4 border-slate-100 rounded-[32px] shadow-2xl overflow-hidden my-auto">
-            <!-- Wizard Top Progress -->
             <div class="hidden md:flex bg-slate-50 p-2 md:px-6 md:py-4 border-b border-slate-200 items-center justify-between">
                 <div>
                     <h2 id="wizardStepTitle" class="text-lg sm:text-xl font-display text-slate-800">Langkah 1: Jumlah Pemain & Ekonomi</h2>
@@ -248,9 +250,8 @@
                 </div>
             </div>
 
-            <!-- Wizard Steps Body -->
             <div class="p-3 md:p-6">
-                <!-- STEP 1: Jumlah Pemain, Mode Karakter & Ekonomi -->
+                <!-- STEP 1 -->
                 <div id="wizardStep1" class="space-y-5">
                     <div>
                         <label class="block text-xs font-extrabold uppercase tracking-wider text-gray-800 mb-2">
@@ -324,7 +325,7 @@
                     </div>
                 </div>
 
-                <!-- STEP 2: Daftar Pemain & Karakter -->
+                <!-- STEP 2 -->
                 <div id="wizardStep2" class="hidden space-y-4">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold text-slate-500">Atur nama & karakter:</span>
@@ -340,20 +341,18 @@
                     <div id="playerSetupGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1"></div>
                 </div>
 
-                <!-- STEP 3: Ringkasan Siap Main -->
+                <!-- STEP 3 -->
                 <div id="wizardStep3" class="hidden space-y-4 text-center py-2">
                     <div class="w-16 h-16 rounded-2xl bg-amber-100 border-2 border-amber-300 text-amber-600 flex items-center justify-center text-3xl mx-auto shadow-sm">
                         🎲
                     </div>
                     <div>
                         <h3 class="text-xl font-display text-slate-800">Siap Berebut Lahan Konoha!</h3>
-                        <p class="hidden text-xs text-slate-500 mt-1">Kuasai seluruh kota dalam 1 warna yang sama untuk mengaktifkan <b class="text-emerald-600">Bonus Sewa Kombo +20%</b>!</p>
                     </div>
                     <div id="wizardSummaryBox" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
                 </div>
             </div>
 
-            <!-- Wizard Footer Navigation -->
             <div class="bg-slate-50 px-3 py-2 md:px-6 md:py-4 border-t border-slate-200 flex items-center justify-between">
                 <button id="btnWizPrev" onclick="changeWizardStep(-1)" class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold transition invisible">
                     <i class="fa-solid fa-arrow-left mr-1"></i> Kembali
@@ -365,51 +364,64 @@
         </div>
     </div>
 
-    <!-- 3. TOP HUD BAR (GAME-STYLE FLOATING CARDS + QUICK ICON POD, NO WEBSITE NAVBAR) -->
-    <section class="w-auto md:w-full max-w-[1440px] mx-auto flex items-center justify-between gap-2 shrink-0">
+    <!-- 3. TOP HUD BAR -->
+    <section class="w-full max-w-[1440px] mx-auto flex items-center justify-between gap-2 shrink-0">
         <!-- Player Cards Bar -->
         <div id="playersCompactBar" class="flex-1 grid grid-cols-4 md:grid-cols-6 gap-1 sm:gap-2">
             <!-- Injected via JS -->
         </div>
 
-        <!-- Floating Game Utility Pill (Logs, Rules, Sound, Setup) -->
-        <div class="absolute top-2 right-2 hidden md:flex flex-col items-center gap-1.5 bg-white/90 backdrop-blur border-2 border-slate-200/80 px-2.5 py-1.5 rounded-2xl shadow-sm shrink-0">
-            <div class="hidden xl:flex flex-col items-end pr-2 border-r border-slate-200">
-                <span id="roundHeaderBadge" class="font-display text-xs text-rose-500">#1</span>
-            </div>
+        <!-- Floating Game Utility Pill (Visible on both Mobile & Desktop) -->
+        <div class="hidden md:flex items-center gap-1 sm:gap-1.5 bg-white/90 backdrop-blur border-2 border-slate-200/80 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-2xl shadow-sm shrink-0">
+            <span id="roundHeaderBadge" class="hidden sm:inline-block font-display text-xs text-rose-500 pr-1.5 border-r border-slate-200">#1</span>
 
-            <button onclick="openLogsDrawer()" class="w-9 h-9 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 flex items-center justify-center relative transition" title="Kabar Konoha (Riwayat Log)">
-                <i class="fa-solid fa-newspaper"></i>
+            <button onclick="openLogsDrawer()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 flex items-center justify-center relative transition" title="Kabar Konoha (Riwayat Log)">
+                <i class="fa-solid fa-newspaper text-xs sm:text-sm"></i>
                 <span id="logUnreadDot" class="w-2.5 h-2.5 rounded-full bg-rose-500 border border-white absolute -top-0.5 -right-0.5 hidden"></span>
             </button>
 
-            <button onclick="openRulesModal()" class="w-9 h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 flex items-center justify-center transition" title="Info Karakter & Kombo Kota">
-                <i class="fa-solid fa-circle-info"></i>
+            <button onclick="openRulesModal()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 flex items-center justify-center transition" title="Info Karakter & Kombo Kota">
+                <i class="fa-solid fa-circle-info text-xs sm:text-sm"></i>
             </button>
 
-            <button onclick="toggleSound()" id="soundBtn" class="w-9 h-9 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-200 flex items-center justify-center transition" title="Suara Efek">
-                <i class="fa-solid fa-volume-high"></i>
+            <button onclick="toggleSound()" id="soundBtn" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-200 flex items-center justify-center transition" title="Suara Efek">
+                <i class="fa-solid fa-volume-high text-xs sm:text-sm"></i>
             </button>
 
-            <button onclick="showPreMatchWizard()" class="w-9 h-9 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 border border-rose-200 flex items-center justify-center transition" title="Atur Ulang Permainan">
-                <i class="fa-solid fa-rotate-right"></i>
+            <button onclick="showPreMatchWizard()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 border border-rose-200 flex items-center justify-center transition" title="Atur Ulang Permainan">
+                <i class="fa-solid fa-rotate-right text-xs sm:text-sm"></i>
             </button>
         </div>
     </section>
 
-    <!-- 4. FULL-VIEWPORT RECTANGULAR BOARD (FITS DESKTOP SCREEN WITHOUT SCROLLING) -->
+    <!-- 4. ADAPTIVE RECTANGULAR BOARD (FITS DESKTOP HORIZONTALLY & MOBILE PORTRAIT VERTICALLY) -->
     <div id="boardContainer">
-        <main class="w-auto md:w-full max-w-[1440px] mx-auto min-h-0 flex items-center justify-center">
+        <main class="w-full h-full max-w-[1440px] mx-auto flex items-center justify-center">
             <div id="monopolyBoard" class="monopoly-board">
-                <!-- 40 Clean Tiles + Center Pre-Roll Action Hub -->
+                <!-- 40 Clean Tiles + Clean Center Logo -->
             </div>
         </main>
     </div>
 
-    <!-- CENTRAL POPUP MODAL (DICE ROLL, BUY/UPGRADE, VECTOR CARDS, TILE INFO) -->
+    <!-- FLOATING RE-OPEN TURN MODAL PILL (Muncul saat pemain menutup modal giliran untuk mengintip papan) -->
+    <div id="floatingTurnTrigger" class="fixed top-[65%] left-1/2 -translate-x-1/2 z-30 hidden">
+        <button onclick="openTurnActionModal()" class="px-6 py-3 rounded-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 text-white font-display text-sm sm:text-base shadow-2xl shadow-orange-500/40 border-2 border-white flex items-center gap-2.5 animate-bounce">
+            <i class="fa-solid fa-dice text-lg"></i>
+            <span id="floatingTurnTriggerText">Buka Aksi Giliran & Lempar Dadu</span>
+        </button>
+    </div>
+
+    <!-- TURN ACTION MODAL (POPUP FOKUS UNTUK LEMPAR DADU & KELOLA ASET) -->
+    <div id="turnActionModal" class="fixed inset-0 z-40 bg-slate-900/35 backdrop-blur-[2px] hidden items-center justify-center p-4">
+        <div id="turnActionModalContent" class="bg-white border-4 border-slate-100 rounded-[32px] max-w-sm w-full p-6 shadow-[0_25px_70px_-15px_rgba(15,23,42,0.3)] text-center relative overflow-hidden">
+            <!-- Diisi secara dinamis via updateTurnActionModal() -->
+        </div>
+    </div>
+
+    <!-- CENTRAL POPUP MODAL (DICE ROLL ANIMATION, BUY/UPGRADE, VECTOR CARDS, TILE INFO) -->
     <div id="centerPopupModal" class="fixed inset-0 z-50 bg-slate-900/35 backdrop-blur-[2px] hidden items-center justify-center p-4">
         <div class="bg-white border-4 border-slate-100 rounded-[32px] max-w-md w-full p-6 shadow-[0_25px_70px_-15px_rgba(15,23,42,0.3)] text-center relative overflow-hidden">
-            <div id="popupTopBadge" class="hidden inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 mb-2">
+            <div id="popupTopBadge" class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 mb-2">
                 AKSI GILIRAN
             </div>
             <div id="popupIllustration" class="my-2 flex items-center justify-center"></div>
@@ -429,7 +441,7 @@
                     </div>
                     <div>
                         <h3 class="font-display text-base text-slate-800 leading-none">Kelola & Upgrade Properti</h3>
-                        <span class="text-[11px] text-slate-500">Upgrade bangunanmu sebelum atau saat giliran berlangsung</span>
+                        <span class="text-[11px] text-slate-500">Upgrade bangunanmu sebelum melempar dadu</span>
                     </div>
                 </div>
                 <button onclick="closeUpgradeDrawer()" class="w-8 h-8 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center">
@@ -439,7 +451,7 @@
             <div class="p-5 overflow-y-auto space-y-2.5" id="upgradeDrawerList"></div>
             <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
                 <button onclick="closeUpgradeDrawer()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">
-                    Selesai & Kembali ke Papan
+                    Selesai & Kembali ke Giliran
                 </button>
             </div>
         </div>
@@ -536,9 +548,9 @@
                 debuffDesc: 'Dipotong Pajak Penghasilan 10% tiap kali melewati garis START.',
                 diceDesc: 'Peluang 60% mendapat mata dadu angka kecil (1, 2, 3).'
             },
-            buzzerp: {
-                id: 'buzzerp',
-                name: 'Buzzerp',
+            buzzerrRP: {
+                id: 'buzzerrRP',
+                name: 'BuzzerrRP',
                 type: 'Rakyat',
                 typeIcon: 'fa-users',
                 emoji: '🤳',
@@ -546,9 +558,9 @@
                 debuffDesc: 'Bayar sewa lebih mahal +20% jika menginjak bangunan milik sesama Rakyat.',
                 diceDesc: 'Peluang mata dadu normal (1 - 6 seimbang).'
             },
-            pemuda_pancasila: {
-                id: 'pemuda_pancasila',
-                name: 'Pemuda Pancasila',
+            ormas: {
+                id: 'ormas',
+                name: 'Ormas',
                 type: 'Rakyat',
                 typeIcon: 'fa-users',
                 emoji: '🐯',
@@ -653,7 +665,6 @@
             'Lv.4 Landmark'
         ];
 
-        // Cek apakah pemilik menguasai seluruh kota dalam 1 grup kombo
         function hasFullComboGroup(ownerId, groupCode) {
             if (ownerId === null || ownerId === undefined || !groupCode) return false;
             const grp = COMBO_GROUPS[groupCode];
@@ -818,8 +829,8 @@
         function toggleSound() {
             soundEnabled = !soundEnabled;
             document.getElementById('soundBtn').innerHTML = soundEnabled
-                ? '<i class="fa-solid fa-volume-high"></i>'
-                : '<i class="fa-solid fa-volume-xmark text-slate-400"></i>';
+                ? '<i class="fa-solid fa-volume-high text-xs sm:text-sm"></i>'
+                : '<i class="fa-solid fa-volume-xmark text-slate-400 text-xs sm:text-sm"></i>';
         }
 
         const setupState = {
@@ -837,7 +848,7 @@
             currentPlayerIdx: 0,
             highlightedPlayerId: 0,
             players: [],
-            ownership: {}, // tileId -> { ownerId, level (0..4), boughtAtCycle }
+            ownership: {},
             extraRollGrantedThisTurn: false,
             canRollAgain: false,
             isProcessing: false
@@ -893,6 +904,7 @@
         }
 
         function showPreMatchWizard() {
+            closeTurnActionModal(false);
             setupState.wizardStep = 1;
             updateWizardUI();
             const el = document.getElementById('preMatchScreen');
@@ -1076,7 +1088,7 @@
         }
 
         /**************************************************************
-         * 6. START GAME & CLEAN BOARD RENDERING (WITH COMBO BADGES & PRE-ROLL MANAGE PROPERTY)
+         * 6. START GAME, CLEAN BOARD, & TURN ACTION POPUP MODAL
          **************************************************************/
         function startGame() {
             if (setupState.mode === 'random') {
@@ -1140,7 +1152,7 @@
             renderBoard();
             updateAllUI();
             addLog(`🎉 Permainan dimulai! Modal awal: <b>${formatRp(startingCash)}</b>.`, 'system');
-            checkIfBotTurn();
+            promptCurrentTurn();
         }
 
         function focusPlayerTokenOnBoard(playerId) {
@@ -1160,8 +1172,12 @@
                 const el = document.createElement('div');
                 const isCorner = [0, 10, 20, 30].includes(tile.id);
                 const isLuckyDraw = [3, 7, 15, 18, 22, 27, 33, 36].includes(tile.id);
-                el.className = `board-tile ${isCorner ? 'corner-tile' : ''}`;
-                el.className = `board-tile ${isLuckyDraw ? 'lucky-draw-tile' : ''}`;
+
+                let tileClasses = 'board-tile';
+                if (isCorner) tileClasses += ' corner-tile';
+                if (isLuckyDraw) tileClasses += ' lucky-draw-tile';
+                el.className = tileClasses;
+
                 el.style.gridRow = pos.row;
                 el.style.gridColumn = pos.col;
 
@@ -1175,23 +1191,17 @@
                 const ownerPlayer = own ? gameState.players[own.ownerId] : null;
                 const isComboActive = own && tile.group && hasFullComboGroup(own.ownerId, tile.group);
 
-                // Clean top color bar with Combo Group Tag (e.g. A, B, C...) & Stars
                 let colorBarHtml = tile.color
-                    ? `<div class="w-full h-1 sm:h-3.5 rounded-t-md p-1 flex items-center justify-between text-[6px] sm:text-[10px] font-black text-white shadow-sm" style="background:${tile.color}">
+                    ? `<div class="w-full h-1.5 sm:h-2 rounded-t-md px-1 flex items-center justify-between text-[6px] sm:text-[8px] font-black text-white shadow-sm" style="background:${tile.color}">
                         <span>${tile.group ? tile.group : ''}</span>
                         <span>${own && own.level > 0 ? '★'.repeat(own.level) : (isComboActive ? '⚡' : '')}</span>
                        </div>`
                     : `<div class="w-full h-1 sm:h-2"></div>`;
 
-                // Minimalist bottom indicator (Owner Color Bar OR nothing to avoid text clutter!)
-                let footerBadge = '';
-                if (ownerPlayer) {
-                    footerBadge = `<div class="w-full h-1 rounded-b-md" style="background:${ownerPlayer.color.hex}"></div>`;
-                } else {
-                    footerBadge = `<div class="w-full h-1"></div>`;
-                }
+                let footerBadge = ownerPlayer
+                    ? `<div class="w-full h-1 sm:h-1.5 rounded-b-md" style="background:${ownerPlayer.color.hex}"></div>`
+                    : `<div class="w-full h-1"></div>`;
 
-                // Tokens on this tile
                 const tokensHere = gameState.players.filter(p => !p.bankrupt && p.position === tile.id);
                 const tokensHtml = tokensHere.map(p => {
                     const isBlinking = (activePlayer && p.id === activePlayer.id) || (p.id === gameState.highlightedPlayerId);
@@ -1205,11 +1215,11 @@
 
                 el.innerHTML = `
                     ${colorBarHtml}
-                    <div class="flex-1 flex flex-col items-center justify-center sm:px-0.5 leading-none">
-                        <div class="text-sm sm:text-base leading-none">${tile.icon}</div>
-                        <div class="max-w-[30px] md:max-w-[90px] overflow-hidden text-[8px] sm:text-[12px] font-extrabold text-slate-700 leading-tight truncate mt-0.5">${tile.short}</div>
+                    <div class="flex-1 flex flex-col items-center justify-center sm:px-0.5 leading-none min-w-0 w-full">
+                        <div class="text-xs sm:text-base leading-none">${tile.icon}</div>
+                        <div class="text-[7px] sm:text-[11px] font-extrabold text-slate-700 leading-tight truncate max-w-full mt-0.5">${tile.short}</div>
                     </div>
-                    <div class="w-16 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-wrap items-center justify-center gap-0.5 min-h-[2px] z-20">
+                    <div class="w-12 sm:w-16 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-wrap items-center justify-center gap-0.5 min-h-[2px] z-20 pointer-events-none">
                         ${tokensHtml}
                     </div>
                     ${footerBadge}
@@ -1217,67 +1227,143 @@
                 board.appendChild(el);
             });
 
-            // CENTER BOARD: CLEAN LOGO + PRE-ROLL ACTION HUB (MANAGE PROPERTY BEFORE ROLL OR ROLL DICE)
+            // CENTER BOARD: Bersih, hanya menampilkan branding KONOHAPOLY & indikator giliran ringan
             const center = document.createElement('div');
-            center.className = 'board-center select-none p-4 text-center';
-
-            const canHumanAct = activePlayer && !activePlayer.isBot && !gameState.isProcessing;
-            const myOwnedCount = activePlayer
-                ? Object.values(gameState.ownership).filter(o => o.ownerId === activePlayer.id).length
-                : 0;
-            const upgradableCount = activePlayer
-                ? Object.entries(gameState.ownership).filter(([tid, o]) => {
-                    const t = BOARD_TILES[parseInt(tid)];
-                    return o.ownerId === activePlayer.id && t.type === 'property' && o.level < 4 && activePlayer.cycleCount > o.boughtAtCycle;
-                  }).length
-                : 0;
+            center.className = 'board-center select-none p-3 text-center';
 
             center.innerHTML = `
                 <div class="pointer-events-none flex flex-col items-center justify-center">
-                    <span class="px-3 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 text-[9px] sm:text-[10px] font-extrabold tracking-widest uppercase mb-1">
+                    <span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 text-[8px] sm:text-[10px] font-extrabold tracking-widest uppercase mb-1">
                         Edisi Nusantara +62
                     </span>
-                    <h2 class="font-display text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-slate-800">
+                    <h2 class="font-display text-2xl sm:text-5xl md:text-6xl font-bold tracking-tight text-slate-800">
                         KONOHA<span class="text-rose-500">POLY</span>
                     </h2>
+                    ${
+                        activePlayer
+                            ? `<div class="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-slate-200 shadow-sm text-[10px] sm:text-xs font-bold text-slate-600">
+                                <span class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] text-white" style="background:${activePlayer.color.hex}">${activePlayer.emoji}</span>
+                                <span>Giliran: <b class="text-slate-800">${activePlayer.charName} (${activePlayer.name})</b></span>
+                               </div>`
+                            : ''
+                    }
                 </div>
-
-                <!-- Pre-Roll Turn Hub (Feedback #3: Mudah dijangkau tepat sebelum roll dadu!) -->
-                ${
-                    activePlayer
-                        ? `
-                        <div class="mt-3 sm:mt-5 bg-white/95 border-2 border-slate-200 rounded-3xl px-4 py-3 shadow-lg max-w-md w-full flex flex-col items-center gap-2.5">
-                            <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
-                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white shadow-sm" style="background:${activePlayer.color.hex}">${activePlayer.emoji}</span>
-                                <span>Giliran: <b class="text-slate-900">${activePlayer.charName} (${activePlayer.name})</b></span>
-                            </div>
-
-                            <div class="flex flex-wrap items-center justify-center gap-2 w-full">
-                                ${
-                                    !activePlayer.isBot
-                                        ? `
-                                        <button onclick="openUpgradeDrawer()" ${!canHumanAct ? 'disabled' : ''}
-                                            class="px-4 py-2.5 rounded-2xl bg-sky-50 hover:bg-sky-100 text-sky-700 border-2 border-sky-200 font-display text-xs sm:text-sm flex items-center gap-1.5 transition disabled:opacity-40">
-                                            <i class="fa-solid fa-building-wheat"></i>
-                                            <span>Kelola Aset (${myOwnedCount})</span>
-                                            ${upgradableCount > 0 && !activePlayer.upgradedThisTurn ? `<span class="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-sans font-extrabold">Bisa Upgrade!</span>` : ''}
-                                        </button>
-                                        `
-                                        : ''
-                                }
-
-                                <button id="btnCenterRoll" onclick="openDiceRollPopup()" ${!canHumanAct ? 'disabled' : ''}
-                                    class="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-display text-xs sm:text-sm shadow-md shadow-orange-500/20 flex items-center gap-2 transition transform hover:scale-105 disabled:opacity-50 disabled:pointer-events-none">
-                                    <i class="fa-solid fa-dice text-base"></i>
-                                    <span>${activePlayer.isBot ? `BOT ${activePlayer.charName.toUpperCase()} BERJALAN...` : (gameState.canRollAgain ? 'LEMPAR DADU EKSTRA!' : 'LEMPAR DADU')}</span>
-                                </button>
-                            </div>
-                        </div>
-                        `
-                        : ''
-                }
             `;
             board.appendChild(center);
+        }
+
+        /**************************************************************
+         * 6B. MODAL / POPUP AKSI GILIRAN (FOKUS DI SEMUA UKURAN LAYAR)
+         **************************************************************/
+        function promptCurrentTurn() {
+            if (!gameState.started) return;
+            const current = gameState.players[gameState.currentPlayerIdx];
+            if (!current || current.bankrupt) return;
+
+            if (current.isBot) {
+                closeTurnActionModal(false);
+                setTimeout(() => openDiceRollPopup(), 1000);
+            } else {
+                openTurnActionModal();
+            }
+        }
+
+        function updateTurnActionModalContent() {
+            const activePlayer = gameState.players[gameState.currentPlayerIdx];
+            if (!activePlayer) return;
+
+            const currentTile = BOARD_TILES[activePlayer.position];
+            const myOwnedCount = Object.values(gameState.ownership).filter(o => o.ownerId === activePlayer.id).length;
+            const upgradableCount = Object.entries(gameState.ownership).filter(([tid, o]) => {
+                const t = BOARD_TILES[parseInt(tid)];
+                return o.ownerId === activePlayer.id && t.type === 'property' && o.level < 4 && activePlayer.cycleCount > o.boughtAtCycle;
+            }).length;
+
+            const floatingBtnText = document.getElementById('floatingTurnTriggerText');
+            if (floatingBtnText) {
+                floatingBtnText.textContent = gameState.canRollAgain
+                    ? `Giliran ${activePlayer.charName}: Lempar Dadu Ekstra!`
+                    : `Giliran ${activePlayer.charName}: Lempar Dadu`;
+            }
+
+            const box = document.getElementById('turnActionModalContent');
+            box.innerHTML = `
+                <div class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 mb-3">
+                    ${gameState.canRollAgain ? '✨ BONUS DADU KEMBAR' : `GILIRAN PEMAIN • BABAK #${gameState.turnNumber}`}
+                </div>
+
+                <div class="flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl border-4 border-white shadow-md mb-2" style="background:${activePlayer.color.hex}">
+                        ${activePlayer.emoji}
+                    </div>
+                    <h3 class="text-xl font-display text-slate-800 leading-tight">${activePlayer.charName} <span class="text-sm text-slate-400 font-sans font-bold">(${activePlayer.name})</span></h3>
+                    <div class="font-display text-2xl text-emerald-600 mt-0.5">${formatRp(activePlayer.money)}</div>
+                </div>
+
+                <div class="my-4 bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-600 space-y-1.5 text-left">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 font-semibold">Posisi Saat Ini:</span>
+                        <span class="font-extrabold text-slate-700">${currentTile.icon} ${currentTile.name}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 font-semibold">Aset Dimiliki:</span>
+                        <span class="font-extrabold text-slate-700">${myOwnedCount} Properti (Beli: ${activePlayer.boughtThisCycle}/2)</span>
+                    </div>
+                    ${activePlayer.inJail ? `<div class="text-center text-rose-600 font-bold pt-1">⛓️ Sedang ditahan di Rutan KPK</div>` : ''}
+                </div>
+
+                <div class="flex flex-col gap-2.5">
+                    <button onclick="startRollFromTurnModal()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-display text-base shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition transform active:scale-95">
+                        <i class="fa-solid fa-dice text-xl"></i>
+                        <span>${gameState.canRollAgain ? 'LEMPAR DADU EKSTRA!' : 'LEMPAR DADU SEKARANG'}</span>
+                    </button>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="openUpgradeDrawerFromTurnModal()" class="py-2.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 font-bold text-xs flex items-center justify-center gap-1.5 relative transition">
+                            <i class="fa-solid fa-building-wheat"></i>
+                            <span>Kelola Aset (${myOwnedCount})</span>
+                            ${upgradableCount > 0 && !activePlayer.upgradedThisTurn ? `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute -top-1 -right-1 border border-white"></span>` : ''}
+                        </button>
+
+                        <button onclick="closeTurnActionModal(true)" class="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                            <i class="fa-regular fa-eye"></i>
+                            <span>Intip Papan</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openTurnActionModal() {
+            const activePlayer = gameState.players[gameState.currentPlayerIdx];
+            if (!activePlayer || activePlayer.isBot || gameState.isProcessing) return;
+
+            updateTurnActionModalContent();
+            document.getElementById('floatingTurnTrigger').classList.add('hidden');
+
+            const modal = document.getElementById('turnActionModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeTurnActionModal(showFloatingTrigger = true) {
+            const modal = document.getElementById('turnActionModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            const activePlayer = gameState.players[gameState.currentPlayerIdx];
+            const canShowTrigger = showFloatingTrigger && gameState.started && activePlayer && !activePlayer.isBot && !gameState.isProcessing;
+            document.getElementById('floatingTurnTrigger').classList.toggle('hidden', !canShowTrigger);
+        }
+
+        function startRollFromTurnModal() {
+            closeTurnActionModal(false);
+            openDiceRollPopup();
+        }
+
+        function openUpgradeDrawerFromTurnModal() {
+            closeTurnActionModal(true);
+            openUpgradeDrawer();
         }
 
         /**************************************************************
@@ -1306,31 +1392,29 @@
                 }`;
 
                 card.innerHTML = `
-                    <div class="flex items-center gap-2 min-w-0">
-                        <div class="w-4 sm:w-8 h-4 sm:h-8 rounded-xl flex items-center justify-center text-base shrink-0 border sm:border-2 border-white shadow-sm" style="background:${p.color.hex}">
+                    <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                        <div class="w-5 sm:w-8 h-5 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-base shrink-0 border sm:border-2 border-white shadow-sm" style="background:${p.color.hex}">
                             ${p.emoji}
                         </div>
                         <div class="min-w-0">
-                            <div class="hidden flex items-center gap-1">
-                                <span class="hidden sm:block font-display text-xl sm:text-sm text-slate-800 truncate leading-none">${p.charName}</span>
-                            </div>
-                            <div class="text-[10px] text-slate-500 truncate flex items-center gap-1 leading-tight">
+                            <div class="text-[9px] sm:text-[10px] text-slate-500 truncate flex items-center gap-1 leading-tight">
                                 <span>${p.name}</span>
-                                <span class="hidden sm:block font-display text-xl sm:text-sm text-slate-800 truncate leading-none">${p.charName}</span>
-                                <span class="hidden w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[8px] shrink-0" title="Kategori: ${p.charType}">
+                                <span class="hidden sm:block font-display text-sm text-slate-800 truncate leading-none">${p.charName}</span>
+
+                                <span class="hidden w-4 h-4 rounded-full bg-amber-100 text-amber-700 items-center justify-center text-[8px] shrink-0" title="Kategori: ${p.charType}">
                                     <i class="fa-solid ${p.typeIcon}"></i>
                                 </span>
                                 ${p.isBot ? '<i class="hidden sm:block fa-solid fa-robot text-[9px] text-rose-500" title="Bot"></i>' : ''}
-                                ${p.inJail ? '<span class="hidden sm:block text-[8px] px-1 rounded bg-orange-500 text-white font-bold">KPK</span>' : ''}
+                                ${p.inJail ? '<span class="text-[8px] px-1 rounded bg-orange-500 text-white font-bold">KPK</span>' : ''}
                             </div>
-                            <div class="font-display text-sm sm:text-2xl leading-tight ${p.money < 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                            <div class="font-display text-xs sm:text-xl leading-tight ${p.money < 0 ? 'text-rose-600' : 'text-emerald-600'}">
                                 ${p.bankrupt ? 'BANGKRUT' : formatShortRp(p.money)}
                             </div>
                         </div>
                     </div>
 
                     <button onclick="event.stopPropagation(); showCharacterDetailTooltip('${p.charId}', '${p.name}')"
-                        class="hidden sm:block w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-[11px] shrink-0 transition"
+                        class="hidden sm:flex w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 items-center justify-center text-[11px] shrink-0 transition"
                         title="Lihat Buff & Debuff ${p.charName}">
                         <i class="fa-solid fa-circle-question"></i>
                     </button>
@@ -1395,7 +1479,7 @@
         }
 
         /**************************************************************
-         * 8. CENTRALIZED DICE POPUP & MOVEMENT FLOW (SLOWER BOT, NO BOT BUTTONS)
+         * 8. CENTRALIZED DICE POPUP & MOVEMENT FLOW
          **************************************************************/
         const DICE_ICONS = ['fa-ban', 'fa-dice-one', 'fa-dice-two', 'fa-dice-three', 'fa-dice-four', 'fa-dice-five', 'fa-dice-six'];
 
@@ -1411,7 +1495,6 @@
             const isFourthRoll = (player.rollCount % 4 === 0);
             let d1 = 1, d2 = 1, specialNote = '';
 
-            // Pria Solo Debuff: 1 petak sebelum bangunan milik Rakyat -> otomatis maju 1 langkah
             const nextTileIndex = (player.position + 1) % 40;
             const nextOwn = gameState.ownership[nextTileIndex];
             if (player.charId === 'pria_solo' && nextOwn && nextOwn.ownerId !== player.id) {
@@ -1429,10 +1512,10 @@
                     const val = Math.floor(Math.random() * 6) + 1;
                     return { d1: val, d2: val, total: val * 2, isDouble: true, specialNote: 'Roll Ke-4 Pria Solo: Pasti Kembar!' };
                 }
-                if (player.charId === 'pemuda_pancasila') {
+                if (player.charId === 'ormas') {
                     d1 = [1, 2, 3][Math.floor(Math.random() * 3)];
                     d2 = [1, 2, 3][Math.floor(Math.random() * 3)];
-                    return { d1, d2, total: d1 + d2, isDouble: d1 === d2, specialNote: 'Roll Ke-4 Pemuda Pancasila: Angka Kecil!' };
+                    return { d1, d2, total: d1 + d2, isDouble: d1 === d2, specialNote: 'Roll Ke-4 Ormas: Angka Kecil!' };
                 }
                 if (player.charId === 'pengusaha') {
                     d1 = [4, 5, 6][Math.floor(Math.random() * 3)];
@@ -1460,6 +1543,7 @@
             const player = gameState.players[gameState.currentPlayerIdx];
             if (!player || player.bankrupt) return;
 
+            closeTurnActionModal(false);
             gameState.isProcessing = true;
             gameState.highlightedPlayerId = player.id;
             updateAllUI();
@@ -1502,11 +1586,9 @@
 
             addLog(`🎲 <b>${player.charName} (${player.name})</b> melempar dadu: <b>${roll.total}</b>.`, 'normal');
 
-            // Beri jeda lebih nyaman agar pemain sempat membaca angka dadu (Feedback #2)
             await new Promise(r => setTimeout(r, 1150));
             closeCenterPopup();
 
-            // Cek jika di Rutan KPK
             if (player.inJail) {
                 if (roll.isDouble || player.jailTurns >= 1) {
                     player.inJail = false;
@@ -1591,11 +1673,11 @@
             addLog(`🏁 <b>${player.charName}</b> lewat START & terima gaji <b>${formatRp(finalSalary)}</b>.`, 'good');
 
             if (player.charType !== 'Rakyat') {
-                const buzzers = gameState.players.filter(p => !p.bankrupt && p.charId === 'buzzerp' && p.id !== player.id);
+                const buzzers = gameState.players.filter(p => !p.bankrupt && p.charId === 'buzzerrRP' && p.id !== player.id);
                 buzzers.forEach(bz => {
                     const buzzBonus = Math.round(baseSalary * 0.10);
                     bz.money += buzzBonus;
-                    addLog(`🤳 <b>Buff Buzzerp:</b> <b>${bz.name}</b> dapat komisi 10% (${formatRp(buzzBonus)}) karena Pejabat lewat START!`, 'good');
+                    addLog(`🤳 <b>Buff BuzzerrRP:</b> <b>${bz.name}</b> dapat komisi 10% (${formatRp(buzzBonus)}) karena Pejabat lewat START!`, 'good');
                 });
             }
         }
@@ -1634,14 +1716,14 @@
         }
 
         function applyPemudaPancasilaLevy(buyerPlayer, baseCost, actionLabel) {
-            const ppPlayers = gameState.players.filter(p => !p.bankrupt && p.charId === 'pemuda_pancasila' && p.id !== buyerPlayer.id);
+            const ppPlayers = gameState.players.filter(p => !p.bankrupt && p.charId === 'ormas' && p.id !== buyerPlayer.id);
             if (ppPlayers.length === 0) return 0;
             const totalLevy = Math.round(baseCost * 0.10);
             const perPP = Math.round(totalLevy / ppPlayers.length);
             buyerPlayer.money -= totalLevy;
             ppPlayers.forEach(pp => {
                 pp.money += perPP;
-                addLog(`🐯 <b>Buff Pemuda Pancasila:</b> <b>${pp.name}</b> memungut 10% (${formatRp(perPP)}) dari ${actionLabel}.`, 'info');
+                addLog(`🐯 <b>Buff Ormas:</b> <b>${pp.name}</b> memungut 10% (${formatRp(perPP)}) dari ${actionLabel}.`, 'info');
             });
             return totalLevy;
         }
@@ -1663,7 +1745,6 @@
             const mult = [1, 1.5, 2.2, 3.2, 4.5];
             let rent = Math.round(tile.baseRent * (mult[level] || 1));
 
-            // Feedback #4: Jika pemilik menguasai seluruh kota dalam 1 Kombo Warna, harga sewa naik +20%!
             if (ownerId !== null && ownerId !== undefined && tile.group && hasFullComboGroup(ownerId, tile.group)) {
                 rent = Math.round(rent * 1.20);
             }
@@ -1749,7 +1830,6 @@
                 const canBuyQuota = player.boughtThisCycle < 2;
                 const canAfford = player.money >= tile.price;
 
-                // Feedback #2: Jika Bot yang membeli, tampilkan info singkat tanpa tombol & lebih pelan
                 if (player.isBot) {
                     if (canBuyQuota && player.money >= tile.price + 4000000) {
                         executeBuyProperty(player, tile);
@@ -1784,13 +1864,12 @@
                     illustration: `<div class="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-200 flex items-center justify-center text-4xl mx-auto shadow-sm">${tile.icon}</div>`,
                     title: tile.name,
                     body: `
-                        ${grp ? `<div class="hidden inline-block px-3 py-0.5 rounded-full text-[11px] font-bold" style="background:${grp.pastel}; color:${grp.color}">${grp.name} (+20% Sewa jika lengkap)</div>` : ''}
+                        ${grp ? `<div class="inline-block px-3 py-0.5 rounded-full text-[11px] font-bold" style="background:${grp.pastel}; color:${grp.color}">${grp.name} (+20% Sewa jika lengkap)</div>` : ''}
                         <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1.5 text-xs text-left">
                             <div class="flex justify-between"><span>Harga Properti:</span><b class="text-amber-600">${formatRp(tile.price)}</b></div>
                             <div class="flex justify-between"><span>Sewa Dasar:</span><b class="text-emerald-600">${formatRp(tile.baseRent)}</b></div>
                             <div class="flex justify-between"><span>Saldo Kasmu:</span><b class="text-slate-800">${formatRp(player.money)}</b></div>
                         </div>
-                        <div class="hidden text-[11px] text-slate-400">${parkingNote}</div>
                     `,
                     actions: `
                         <button onclick="skipBuyAndFinishTurn()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs">
@@ -1865,7 +1944,7 @@
                 }
             }
 
-            // C. MILIK PEMAIN LAIN -> BAYAR SEWA (TERMASUK KOMBO +20%)
+            // C. MILIK PEMAIN LAIN -> BAYAR SEWA
             const owner = gameState.players[own.ownerId];
             if (!owner || owner.bankrupt) {
                 completeActionAndAdvanceTurn();
@@ -1892,10 +1971,10 @@
                 extraNotes.push(`⚡ Kombo Wilayah ${COMBO_GROUPS[tile.group].name} Aktif: Sewa naik +20%!`);
             }
 
-            if (player.charId === 'buzzerp' && owner.charType === 'Rakyat') {
+            if (player.charId === 'buzzerrRP' && owner.charType === 'Rakyat') {
                 const extra = Math.round(rent * 0.20);
                 rent += extra;
-                extraNotes.push(`🤳 Debuff Buzzerp: Sewa di bangunan Rakyat naik +20% (+${formatRp(extra)})`);
+                extraNotes.push(`🤳 Debuff BuzzerrRP: Sewa di bangunan Rakyat naik +20% (+${formatRp(extra)})`);
             }
 
             if (tile.type === 'utility' && player.charId === 'pengusaha') {
@@ -1971,7 +2050,7 @@
         }
 
         /**************************************************************
-         * 11. DANA UMUM & KESEMPATAN (BOT POPUP TANPA TOMBOL & LEBIH PELAN)
+         * 11. DANA UMUM & KESEMPATAN
          **************************************************************/
         async function triggerCardDrawPopup(player, tile) {
             const goodCards = CARDS_DECK.filter(c => c.kind === 'good');
@@ -1980,7 +2059,7 @@
             let goodProb = 0.52;
             if (gameState.economy === 'krismon') goodProb = 0.32;
             if (player.charId === 'warga') goodProb = 0.72;
-            else if (player.charId === 'pemuda_pancasila') goodProb = 0.40;
+            else if (player.charId === 'ormas') goodProb = 0.40;
 
             const isGood = Math.random() < goodProb;
             const pool = isGood ? goodCards : badCards;
@@ -2024,7 +2103,6 @@
             addLog(`🃏 <b>${player.charName}</b> tarik kartu: <b>${baseCard.title}</b>`, isGood ? 'good' : 'bad');
             updateAllUI();
 
-            // Feedback #2: Saat Bot menarik kartu, TIDAK PERLU ada tombol action dan durasinya diperlambat (2.2 detik) agar nyaman dibaca
             await new Promise((resolve) => {
                 window._resolveCardPopup = resolve;
                 openCenterPopup({
@@ -2066,7 +2144,7 @@
         }
 
         /**************************************************************
-         * 12. PENYELESAIAN GILIRAN OTOMATIS (SLOWER BOT POPUP, NO ACTION BUTTON FOR BOT)
+         * 12. PENYELESAIAN GILIRAN OTOMATIS
          **************************************************************/
         function showQuickOutcomePopup({ badge, icon, title, desc }) {
             const current = gameState.players[gameState.currentPlayerIdx];
@@ -2116,9 +2194,7 @@
                 gameState.isProcessing = false;
                 updateAllUI();
                 renderBoard();
-                if (player.isBot) {
-                    setTimeout(() => openDiceRollPopup(), 1000);
-                }
+                promptCurrentTurn();
                 return;
             }
 
@@ -2144,14 +2220,7 @@
 
             updateAllUI();
             renderBoard();
-            checkIfBotTurn();
-        }
-
-        function checkIfBotTurn() {
-            const current = gameState.players[gameState.currentPlayerIdx];
-            if (current && current.isBot && !current.bankrupt) {
-                setTimeout(() => openDiceRollPopup(), 950);
-            }
+            promptCurrentTurn();
         }
 
         function checkBankruptcy(player) {
@@ -2200,6 +2269,7 @@
             const m = document.getElementById('upgradeDrawerModal');
             m.classList.add('hidden');
             m.classList.remove('flex');
+            openTurnActionModal();
         }
 
         function renderUpgradeDrawerItems() {
@@ -2287,7 +2357,9 @@
         }
 
         function openCenterPopup({ badge, illustration, title, body, actions }) {
-            document.getElementById('popupTopBadge').textContent = badge;
+            const badgeEl = document.getElementById('popupTopBadge');
+            badgeEl.textContent = badge;
+            badgeEl.classList.toggle('hidden', !badge);
             document.getElementById('popupIllustration').innerHTML = illustration || '';
             document.getElementById('popupTitle').textContent = title;
             document.getElementById('popupBody').innerHTML = body;
@@ -2304,6 +2376,7 @@
         }
 
         function showVictoryPopup(winner) {
+            closeTurnActionModal(false);
             openCenterPopup({
                 badge: 'PENGUASA TUNGGAL KONOHA',
                 illustration: `<div class="text-6xl my-2">🏆</div>`,
